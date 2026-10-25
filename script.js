@@ -4,7 +4,7 @@
 
 const SUPABASE_URL = "https://grizmzdmuboifbofvefk.supabase.co";
 
-const SUPABASE_KEY =git init
+const SUPABASE_KEY =
     "sb_publishable_YCcLKsCGQo5JHv2Y7WQzGg_Gz79S6yl";
 
 
