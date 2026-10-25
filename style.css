@@ -999,4 +999,51 @@ html[data-mode="dark"] .auth-card {
         padding: 18px;
     }
 
+    .ai-coach-section {
+    margin-top: 30px;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ai-coach-section h2 {
+    margin-bottom: 16px;
+}
+
+#aiPrompt {
+    width: 100%;
+    min-height: 130px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    resize: vertical;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+#aiPrompt::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+#askAiBtn {
+    margin-top: 14px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.ai-response {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
 }
