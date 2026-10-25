@@ -4,7 +4,7 @@
 
 const SUPABASE_URL = "https://grizmzdmuboifbofvefk.supabase.co";
 
-const SUPABASE_KEY =
+const SUPABASE_KEY =git init
     "sb_publishable_YCcLKsCGQo5JHv2Y7WQzGg_Gz79S6yl";
 
 
@@ -3295,7 +3295,7 @@ async function diagnoseMistake() {
         const response =
             await fetch(
 
-                "http://127.0.0.1:8001/diagnose?description=" +
+                "https://prepnexa-api.onrender.com/diagnose?description=" +
 
                 encodeURIComponent(
                     description
