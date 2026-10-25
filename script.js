@@ -3420,5 +3420,28 @@ if (askAiBtn) {
     });
 }
 
+function useAiPrompt(type) {
+    const aiPrompt = document.getElementById("aiPrompt");
+
+    if (!aiPrompt) return;
+
+    if (type === "studyPlan") {
+        aiPrompt.value =
+            "Create a practical 7-day placement study plan for me covering DSA, CS Core, Aptitude and Verbal. Keep it beginner friendly and structured day-wise.";
+    }
+
+    if (type === "weakness") {
+        aiPrompt.value =
+            "Analyze common weaknesses of a placement student in DSA, CS Core, Aptitude and Verbal, and tell me what I should improve first.";
+    }
+
+    if (type === "interview") {
+        aiPrompt.value =
+            "Give me 10 important placement interview questions for DSA, OOPs, DBMS, OS and Computer Networks with short answers.";
+    }
+
+    aiPrompt.focus();
+}
+
     }
 );
