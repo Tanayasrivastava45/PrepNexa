@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
 
 
 app = FastAPI(title="PrepNexa API")
@@ -31,7 +32,7 @@ if GEMINI_API_KEY:
 
 
 # -----------------------------
-# Existing rule-based diagnosis
+# Rule-based diagnosis
 # -----------------------------
 
 def diagnose_mistake(description):
@@ -78,7 +79,7 @@ def give_suggestion(diagnosis):
 
 
 # -----------------------------
-# Gemini request model
+# Request model
 # -----------------------------
 
 class AIRequest(BaseModel):
@@ -86,11 +87,12 @@ class AIRequest(BaseModel):
 
 
 # -----------------------------
-# Home route
+# Home
 # -----------------------------
 
 @app.get("/")
 def home():
+
     return {
         "message": "PrepNexa API is working!",
         "ai_enabled": bool(GEMINI_API_KEY)
@@ -98,7 +100,7 @@ def home():
 
 
 # -----------------------------
-# Existing diagnosis route
+# Diagnosis
 # -----------------------------
 
 @app.get("/diagnose")
@@ -116,7 +118,7 @@ def diagnose(description: str):
 
 
 # -----------------------------
-# Gemini AI endpoint
+# Gemini AI
 # -----------------------------
 
 @app.post("/ai")
@@ -128,7 +130,9 @@ def ai_response(request: AIRequest):
             detail="Gemini API key is not configured."
         )
 
-    if not request.prompt.strip():
+    prompt = request.prompt.strip()
+
+    if not prompt:
         raise HTTPException(
             status_code=400,
             detail="Prompt cannot be empty."
@@ -136,41 +140,34 @@ def ai_response(request: AIRequest):
 
     try:
 
-        full_prompt = f"""
-You are PrepNexa AI, a placement preparation assistant for engineering students.
-
-Your job is to help students prepare for internships and placements.
-
-You can help with:
-- DSA
-- Aptitude
-- Verbal Ability
-- OOPs
-- DBMS
-- Operating Systems
-- Computer Networks
-- Interview preparation
-- Placement readiness
-- Study plans
-- Mistake analysis
-
-Explain answers clearly and practically.
-
-If the student is confused, explain in simple language.
-If useful, use short bullet points.
-
-Student question:
-
-{request.prompt}
-"""
-
         response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=full_prompt
+            model="gemini-3.5-flash-lite",
+
+            contents=prompt,
+
+            config=types.GenerateContentConfig(
+
+                system_instruction=(
+                    "You are PrepNexa AI, a placement preparation coach "
+                    "for engineering students. Help with DSA, Aptitude, "
+                    "OOPs, DBMS, OS, CN, Verbal and interviews. "
+                    "Answer clearly, briefly and practically. "
+                    "Use simple Hinglish when useful."
+                ),
+
+                max_output_tokens=500,
+
+                temperature=0.4
+            )
         )
 
+        answer = response.text
+
+        if not answer:
+            answer = "I could not generate an answer. Please try again."
+
         return {
-            "response": response.text
+            "response": answer
         }
 
     except Exception as e:
