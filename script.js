@@ -3373,5 +3373,52 @@ window.addEventListener(
 
         await checkAuthentication();
 
+        const askAiBtn = document.getElementById("askAiBtn");
+const aiPrompt = document.getElementById("aiPrompt");
+const aiResponse = document.getElementById("aiResponse");
+
+if (askAiBtn) {
+    askAiBtn.addEventListener("click", async () => {
+        const prompt = aiPrompt.value.trim();
+
+        if (!prompt) {
+            aiResponse.innerText = "Please enter a question first.";
+            return;
+        }
+
+        aiResponse.innerText = "Thinking...";
+
+        try {
+            const response = await fetch(
+                "https://prepnexa-api.onrender.com/ai",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                aiResponse.innerText =
+                    data.detail || "Something went wrong.";
+                return;
+            }
+
+            aiResponse.innerText = data.response;
+
+        } catch (error) {
+            console.error(error);
+            aiResponse.innerText =
+                "Unable to connect to PrepNexa AI.";
+        }
+    });
+}
+
     }
 );
