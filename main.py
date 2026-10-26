@@ -156,14 +156,11 @@ def ai_response(request: AIRequest):
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=(
-                            "You are PrepNexa AI, a placement preparation coach "
-                            "for engineering students. Help with DSA, Aptitude, "
-                            "Verbal, OOPs, DBMS, OS, Computer Networks and interviews. "
-                            "Give clear, short and practical answers. "
-                            "Use simple Hinglish when useful."
+                              "You are PrepNexa AI. Help engineering students with DSA, CS subjects, aptitude and interviews. "
+    "Answer briefly and clearly in simple Hinglish when useful."
                         ),
-                        max_output_tokens=500,
-                        temperature=0.4
+                        max_output_tokens=250,
+                        temperature=0.2
                     )
                 )
 
