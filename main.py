@@ -1,4 +1,5 @@
 import os
+import time
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -96,6 +97,7 @@ class AIRequest(BaseModel):
 
 @app.get("/")
 def home():
+
     return {
         "message": "PrepNexa API is working!",
         "ai_enabled": bool(GEMINI_API_KEY)
@@ -110,6 +112,7 @@ def home():
 def diagnose(description: str):
 
     diagnosis = diagnose_mistake(description)
+
     suggestion = give_suggestion(diagnosis)
 
     return {
@@ -120,7 +123,7 @@ def diagnose(description: str):
 
 
 # -----------------------------
-# PrepNexa AI Coach
+# Gemini AI
 # -----------------------------
 
 @app.post("/ai")
@@ -142,21 +145,58 @@ def ai_response(request: AIRequest):
 
     try:
 
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=(
-                    "You are PrepNexa AI, a placement preparation coach "
-                    "for engineering students. Help with DSA, Aptitude, "
-                    "Verbal, OOPs, DBMS, Operating Systems, Computer Networks "
-                    "and placement interviews. Explain concepts clearly, "
-                    "briefly and practically. Use simple Hinglish when useful."
-                ),
-                max_output_tokens=500,
-                temperature=0.4
-            )
-        )
+        response = None
+
+        for attempt in range(3):
+
+            try:
+
+                response = client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=(
+                            "You are PrepNexa AI, a placement preparation coach "
+                            "for engineering students. Help with DSA, Aptitude, "
+                            "Verbal, OOPs, DBMS, OS, Computer Networks and interviews. "
+                            "Give clear, short and practical answers. "
+                            "Use simple Hinglish when useful."
+                        ),
+                        max_output_tokens=500,
+                        temperature=0.4
+                    )
+                )
+
+                break
+
+            except Exception as e:
+
+                error_text = str(e)
+
+                print(
+                    f"Gemini attempt {attempt + 1} failed:",
+                    error_text
+                )
+
+                if (
+                    "503" in error_text
+                    or "UNAVAILABLE" in error_text
+                ) and attempt < 2:
+
+                    wait_time = 2 ** attempt
+
+                    print(
+                        f"Gemini busy. Retrying in {wait_time} seconds..."
+                    )
+
+                    time.sleep(wait_time)
+
+                    continue
+
+                raise
+
+        if response is None:
+            raise Exception("Gemini did not return a response.")
 
         answer = response.text
 
