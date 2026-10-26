@@ -10,6 +10,10 @@ from google.genai import types
 app = FastAPI(title="PrepNexa API")
 
 
+# ------------------------------------------------
+# CORS
+# ------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,9 +23,9 @@ app.add_middleware(
 )
 
 
-# -----------------------------
+# ------------------------------------------------
 # Gemini setup
-# -----------------------------
+# ------------------------------------------------
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -31,9 +35,9 @@ if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
 
 
-# -----------------------------
-# Rule-based diagnosis
-# -----------------------------
+# ------------------------------------------------
+# Existing Diagnosis System
+# ------------------------------------------------
 
 def diagnose_mistake(description):
     description = description.lower()
@@ -78,17 +82,17 @@ def give_suggestion(diagnosis):
         return "Dry run your code step by step and inspect variable values."
 
 
-# -----------------------------
-# Request model
-# -----------------------------
+# ------------------------------------------------
+# AI Request Model
+# ------------------------------------------------
 
 class AIRequest(BaseModel):
     prompt: str
 
 
-# -----------------------------
+# ------------------------------------------------
 # Home
-# -----------------------------
+# ------------------------------------------------
 
 @app.get("/")
 def home():
@@ -99,9 +103,9 @@ def home():
     }
 
 
-# -----------------------------
-# Diagnosis
-# -----------------------------
+# ------------------------------------------------
+# Diagnosis API
+# ------------------------------------------------
 
 @app.get("/diagnose")
 def diagnose(description: str):
@@ -117,9 +121,9 @@ def diagnose(description: str):
     }
 
 
-# -----------------------------
-# Gemini AI
-# -----------------------------
+# ------------------------------------------------
+# PrepNexa AI Coach
+# ------------------------------------------------
 
 @app.post("/ai")
 def ai_response(request: AIRequest):
@@ -141,7 +145,8 @@ def ai_response(request: AIRequest):
     try:
 
         response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
+
+            model="gemini-3.8-flash",
 
             contents=prompt,
 
@@ -150,9 +155,9 @@ def ai_response(request: AIRequest):
                 system_instruction=(
                     "You are PrepNexa AI, a placement preparation coach "
                     "for engineering students. Help with DSA, Aptitude, "
-                    "OOPs, DBMS, OS, CN, Verbal and interviews. "
-                    "Answer clearly, briefly and practically. "
-                    "Use simple Hinglish when useful."
+                    "Verbal, OOPs, DBMS, OS, Computer Networks and "
+                    "placement interviews. Give clear, short and practical "
+                    "answers. Use simple Hinglish when useful."
                 ),
 
                 max_output_tokens=500,
