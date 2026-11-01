@@ -1,3447 +1,557 @@
 /* =========================================================
-   SUPABASE
+   PREPNEXA CREDENTIALS & INITIALIZATION
 ========================================================= */
 
 const SUPABASE_URL = "https://grizmzdmuboifbofvefk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_YCcLKsCGQo5JHv2Y7WQzGg_Gz79S6yl";
+const BACKEND_API_URL = "https://prepnexa-api.onrender.com";
 
-const SUPABASE_KEY =
-    "sb_publishable_YCcLKsCGQo5JHv2Y7WQzGg_Gz79S6yl";
-
-
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-    );
-
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 let currentUser = null;
-
 let skillRadarChartInstance = null;
-
 let progressChartInstance = null;
-
 let currentFlashcardSubject = "DSA";
-
 let currentFlashcardIndex = 0;
-
-let knownFlashcards =
-    new Set();
-
+let activeFlashcardsList = [];
 let adaptiveIndex = 0;
-
 let adaptiveCorrect = 0;
-
-
-
-/* =========================================================
-   AUTH MESSAGE
-========================================================= */
-
-function showAuthMessage(
-    message,
-    type = "normal"
-) {
-
-    const element =
-        document.getElementById(
-            "authMessage"
-        );
-
-
-    if (!element) {
-        return;
-    }
-
-
-    element.innerText =
-        message;
-
-
-    if (type === "success") {
-
-        element.style.color =
-            "#22c55e";
-
-    }
-    else if (
-        type === "error"
-    ) {
-
-        element.style.color =
-            "#ef4444";
-
-    }
-    else {
-
-        element.style.color =
-            "#6b7280";
-
-    }
-
-}
-
-
-
-/* =========================================================
-   SIGN UP
-========================================================= */
-
-async function signUpUser() {
-
-    const name =
-        document.getElementById("authName").value.trim();
-
-    const role =
-        document.getElementById("authRole").value;
-
-    const email =
-        document.getElementById("authEmail").value.trim();
-
-    const password =
-        document.getElementById("authPassword").value;
-
-    const message =
-        document.getElementById("authMessage");
-
-
-    if (!name || !role || !email || !password) {
-
-        message.innerText =
-            "Please fill all fields.";
-
-        message.style.color =
-            "red";
-
-        return;
-    }
-
-
-    if (password.length < 6) {
-
-        message.innerText =
-            "Password must be at least 6 characters.";
-
-        message.style.color =
-            "red";
-
-        return;
-    }
-
-
-    message.innerText =
-        "Creating account...";
-
-    message.style.color =
-        "#6b7280";
-
-
-    try {
-
-        const { data, error } =
-            await supabaseClient.auth.signUp({
-
-                email: email,
-
-                password: password,
-
-                options: {
-
-                    data: {
-                        name: name,
-                        role: role
-                    }
-
-                }
-
-            });
-
-
-        console.log("SIGNUP DATA:", data);
-        console.log("SIGNUP ERROR:", error);
-
-
-        if (error) {
-
-            message.innerText =
-                "Signup failed: " + error.message;
-
-            message.style.color =
-                "red";
-
-            return;
-        }
-
-
-        if (!data.user) {
-
-            message.innerText =
-                "Signup failed: Supabase did not create a user.";
-
-            message.style.color =
-                "red";
-
-            return;
-        }
-
-
-        localStorage.setItem(
-            "prepnexaPendingProfile",
-            JSON.stringify({
-                name: name,
-                role: role
-            })
-        );
-
-
-        message.innerText =
-            "Account created ✅ Check your email for verification, then login.";
-
-        message.style.color =
-            "green";
-
-
-        console.log(
-            "USER CREATED:",
-            data.user
-        );
-
-    }
-    catch (err) {
-
-        console.error(
-            "SIGNUP CRASH:",
-            err
-        );
-
-
-        message.innerText =
-            "Signup error: " + err.message;
-
-        message.style.color =
-            "red";
-    }
-}
-
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-async function loginUser() {
-
-    const email =
-        document
-            .getElementById(
-                "authEmail"
-            )
-            .value
-            .trim();
-
-
-    const password =
-        document
-            .getElementById(
-                "authPassword"
-            )
-            .value;
-
-
-    if (
-        !email ||
-        !password
-    ) {
-
-        showAuthMessage(
-            "Enter your email and password.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    showAuthMessage(
-        "Logging in..."
-    );
-
-
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .auth
-            .signInWithPassword({
-
-                email:
-                    email,
-
-                password:
-                    password
-
-            });
-
-
-    if (error) {
-
-        showAuthMessage(
-            error.message,
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    currentUser =
-        data.user;
-
-
-    await ensureProfileExists();
-
-
-    showApplication();
-
-
-    await loadProfileFromSupabase();
-
-    await loadMistakesFromSupabase();
-
-    await loadScoresFromSupabase();
-
-
-    showAuthMessage(
-        "Login successful ✅",
-        "success"
-    );
-
-}
-
-
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-async function logoutUser() {
-
-    await supabaseClient
-        .auth
-        .signOut();
-
-
-    currentUser =
-        null;
-
-
-    hideApplication();
-
-}
-
-
-
-/* =========================================================
-   CHECK SESSION
-========================================================= */
-
-async function checkAuthentication() {
-
-    const {
-        data
-    } =
-        await supabaseClient
-            .auth
-            .getSession();
-
-
-    if (
-        data.session &&
-        data.session.user
-    ) {
-
-        currentUser =
-            data.session.user;
-
-
-        showApplication();
-
-
-        await ensureProfileExists();
-
-        await loadProfileFromSupabase();
-
-        await loadMistakesFromSupabase();
-
-        await loadScoresFromSupabase();
-
-    }
-    else {
-
-        hideApplication();
-
-    }
-
-}
-
-
-
-function showApplication() {
-
-    document
-        .getElementById(
-            "authScreen"
-        )
-        .style
-        .display =
-        "none";
-
-
-    document
-        .querySelector(
-            ".app"
-        )
-        .style
-        .display =
-        "flex";
-
-}
-
-
-
-function hideApplication() {
-
-    document
-        .getElementById(
-            "authScreen"
-        )
-        .style
-        .display =
-        "flex";
-
-
-    document
-        .querySelector(
-            ".app"
-        )
-        .style
-        .display =
-        "none";
-
-}
-
-
-
-/* =========================================================
-   PROFILE DATABASE
-========================================================= */
-
-async function ensureProfileExists() {
-
-    if (!currentUser) {
-        return;
-    }
-
-
-    const {
-        data
-    } =
-        await supabaseClient
-            .from(
-                "profiles"
-            )
-            .select("*")
-            .eq(
-                "id",
-                currentUser.id
-            )
-            .maybeSingle();
-
-
-    if (data) {
-        return;
-    }
-
-
-    let name =
-        currentUser
-            .user_metadata
-            ?.name ||
-        "User";
-
-
-    let role =
-        currentUser
-            .user_metadata
-            ?.role ||
-        "";
-
-
-    const pending =
-        localStorage.getItem(
-            "prepnexaPendingProfile"
-        );
-
-
-    if (pending) {
-
-        const saved =
-            JSON.parse(pending);
-
-
-        name =
-            saved.name || name;
-
-
-        role =
-            saved.role || role;
-
-    }
-
-
-    await saveProfileToSupabase(
-        currentUser,
-        name,
-        role
-    );
-
-}
-
-
-
-async function saveProfileToSupabase(
-    user,
-    name,
-    role
-) {
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from(
-                "profiles"
-            )
-            .upsert({
-
-                id:
-                    user.id,
-
-                name:
-                    name,
-
-                role:
-                    role
-
-            });
-
-
-    if (error) {
-
-        console.error(
-            "Profile save error:",
-            error
-        );
-
-    }
-
-}
-
-
-
-async function loadProfileFromSupabase() {
-
-    if (!currentUser) {
-        return;
-    }
-
-
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from(
-                "profiles"
-            )
-            .select("*")
-            .eq(
-                "id",
-                currentUser.id
-            )
-            .single();
-
-
-    if (
-        error ||
-        !data
-    ) {
-
-        return;
-
-    }
-
-
-    const profile = {
-
-        name:
-            data.name,
-
-        role:
-            data.role
-
-    };
-
-
-    localStorage.setItem(
-        "prepsenseProfile",
-        JSON.stringify(profile)
-    );
-
-
-    updateProfileUI(profile);
-
-}
-
-
-
-/* =========================================================
-   SAVE PROFILE BUTTON
-========================================================= */
-
-async function saveProfile() {
-
-    const name =
-        document
-            .getElementById(
-                "studentName"
-            )
-            .value
-            .trim();
-
-
-    const role =
-        document
-            .getElementById(
-                "profileRole"
-            )
-            .value;
-
-
-    if (
-        !name ||
-        !role
-    ) {
-
-        document
-            .getElementById(
-                "profileMessage"
-            )
-            .innerText =
-            "Please enter name and role.";
-
-        return;
-
-    }
-
-
-    const profile = {
-        name,
-        role
-    };
-
-
-    localStorage.setItem(
-        "prepsenseProfile",
-        JSON.stringify(profile)
-    );
-
-
-    if (currentUser) {
-
-        await saveProfileToSupabase(
-            currentUser,
-            name,
-            role
-        );
-
-    }
-
-
-    updateProfileUI(profile);
-
-
-    document
-        .getElementById(
-            "profileMessage"
-        )
-        .innerText =
-        "Profile saved ✅";
-
-}
-
-
-
-function updateProfileUI(
-    profile
-) {
-
-    document
-        .getElementById(
-            "welcomeTitle"
-        )
-        .innerText =
-        "Hi, " +
-        profile.name +
-        " 👋";
-
-
-    document
-        .getElementById(
-            "topRole"
-        )
-        .innerText =
-        getRoleName(
-            profile.role
-        );
-
-
-    document
-        .getElementById(
-            "studentName"
-        )
-        .value =
-        profile.name;
-
-
-    document
-        .getElementById(
-            "profileRole"
-        )
-        .value =
-        profile.role;
-
-
-    document
-        .getElementById(
-            "targetRole"
-        )
-        .value =
-        profile.role;
-
-
-    updateProfilePhotoUI();
-
-}
-
-
-
-function getRoleName(
-    role
-) {
-
-    if (role === "SDE") {
-        return "Software Developer";
-    }
-
-
-    if (role === "AIML") {
-        return "AI / ML Engineer";
-    }
-
-
-    if (role === "DATA") {
-        return "Data Analyst";
-    }
-
-
-    return "Target Role";
-
-}
-
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function showPage(
-    pageId,
-    element
-) {
-
-    document
-        .querySelectorAll(
-            ".page"
-        )
-        .forEach(
-            page =>
-                page.classList.remove(
-                    "active"
-                )
-        );
-
-
-    document
-        .querySelectorAll(
-            ".nav-item"
-        )
-        .forEach(
-            item =>
-                item.classList.remove(
-                    "active"
-                )
-        );
-
-
-    document
-        .getElementById(
-            pageId
-        )
-        ?.classList.add(
-            "active"
-        );
-
-
-    element
-        ?.classList
-        .add(
-            "active"
-        );
-
-}
-
-
-
-function openProfileSettings() {
-
-    showPage(
-        "profileSettings"
-    );
-
-}
-
-
-
-/* =========================================================
-   HELPER
-========================================================= */
-
-function getSelectedValue(
-    name
-) {
-
-    const answer =
-        document.querySelector(
-            `input[name="${name}"]:checked`
-        );
-
-
-    return answer
-        ? answer.value
-        : null;
-
-}
-
-
-
-/* =========================================================
-   DSA
-========================================================= */
-
-async function submitDSATest() {
-
-    const answers = [
-
-        getSelectedValue("dsa1"),
-
-        getSelectedValue("dsa2"),
-
-        getSelectedValue("dsa3")
-
-    ];
-
-
-    if (
-        answers.some(
-            a => !a
-        )
-    ) {
-
-        alert(
-            "Answer all questions."
-        );
-
-        return;
-
-    }
-
-
-    const correct = [
-        "B",
-        "B",
-        "B"
-    ];
-
-
-    let score =
-        answers.filter(
-            (a,i) =>
-                a === correct[i]
-        ).length;
-
-
-    score =
-        Math.round(
-            score / 3 * 100
-        );
-
-
-    document
-        .getElementById(
-            "dsaScore"
-        )
-        .value =
-        score;
-
-
-    document
-        .getElementById(
-            "dsaResult"
-        )
-        .innerText =
-        `DSA Score: ${score}%`;
-
-
-    if (
-        answers[0] !== "B"
-    ) {
-
-        await addMistake(
-            "DSA",
-            "Binary Search",
-            "Time complexity of Binary Search?",
-            "O(log n)"
-        );
-
-    }
-
-
-    if (
-        answers[1] !== "B"
-    ) {
-
-        await addMistake(
-            "DSA",
-            "Stack",
-            "Stack follows?",
-            "LIFO"
-        );
-
-    }
-
-
-    if (
-        answers[2] !== "B"
-    ) {
-
-        await addMistake(
-            "DSA",
-            "Searching",
-            "Best search for sorted array?",
-            "Binary Search"
-        );
-
-    }
-
-
-    autoCalculateReadiness();
-
-}
-
-
-
-/* =========================================================
-   VERBAL
-========================================================= */
-
-async function submitVerbalTest() {
-
-    const answers = [
-
-        getSelectedValue("verbal1"),
-
-        getSelectedValue("verbal2"),
-
-        getSelectedValue("verbal3")
-
-    ];
-
-
-    if (
-        answers.some(
-            a => !a
-        )
-    ) {
-
-        alert(
-            "Answer all questions."
-        );
-
-        return;
-
-    }
-
-
-    const correct = [
-        "B",
-        "B",
-        "C"
-    ];
-
-
-    let score =
-        answers.filter(
-            (a,i) =>
-                a === correct[i]
-        ).length;
-
-
-    score =
-        Math.round(
-            score / 3 * 100
-        );
-
-
-    document
-        .getElementById(
-            "verbalScore"
-        )
-        .value =
-        score;
-
-
-    document
-        .getElementById(
-            "verbalResult"
-        )
-        .innerText =
-        `Verbal Score: ${score}%`;
-
-
-    autoCalculateReadiness();
-
-}
-
-
-
-/* =========================================================
-   APTITUDE
-========================================================= */
-
-async function submitAptitudeTest() {
-
-    const answers = [
-
-        getSelectedValue("aptitude1"),
-
-        getSelectedValue("aptitude2"),
-
-        getSelectedValue("aptitude3")
-
-    ];
-
-
-    if (
-        answers.some(
-            a => !a
-        )
-    ) {
-
-        alert(
-            "Answer all questions."
-        );
-
-        return;
-
-    }
-
-
-    const correct = [
-        "C",
-        "B",
-        "C"
-    ];
-
-
-    let score =
-        answers.filter(
-            (a,i) =>
-                a === correct[i]
-        ).length;
-
-
-    score =
-        Math.round(
-            score / 3 * 100
-        );
-
-
-    document
-        .getElementById(
-            "aptitudeScore"
-        )
-        .value =
-        score;
-
-
-    document
-        .getElementById(
-            "aptitudeResult"
-        )
-        .innerText =
-        `Aptitude Score: ${score}%`;
-
-
-    autoCalculateReadiness();
-
-}
-
-
-
-/* =========================================================
-   CS CORE
-========================================================= */
-
-function openCSCorePart(
-    partId
-) {
-
-    document
-        .querySelectorAll(
-            ".cs-core-part"
-        )
-        .forEach(
-            part =>
-                part.style.display =
-                    "none"
-        );
-
-
-    document
-        .getElementById(
-            partId
-        )
-        .style
-        .display =
-        "block";
-
-}
-
-
-
-async function submitCSCoreTest(
-    subject,
-    names,
-    correctAnswers
-) {
-
-    const answers =
-        names.map(
-            getSelectedValue
-        );
-
-
-    if (
-        answers.some(
-            answer => !answer
-        )
-    ) {
-
-        alert(
-            "Answer all four questions."
-        );
-
-        return;
-
-    }
-
-
-    const correct =
-        answers.filter(
-            (answer,index) =>
-                answer ===
-                correctAnswers[index]
-        )
-        .length;
-
-
-    const score =
-        Math.round(
-            correct / 4 * 100
-        );
-
-
-    const resultId =
-        subject
-            .replaceAll(
-                " ",
-                ""
-            ) +
-        "Result";
-
-
-    document
-        .getElementById(
-            resultId
-        )
-        .innerText =
-        `${subject}: ${score}%`;
-
-
-    let scores =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseCSCoreSections"
-            ) || "{}"
-        );
-
-
-    scores[subject] =
-        score;
-
-
-    localStorage.setItem(
-        "prepsenseCSCoreSections",
-        JSON.stringify(scores)
-    );
-
-
-    calculateCSCoreOverall();
-
-}
-
-
-
-function calculateCSCoreOverall() {
-
-    const scores =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseCSCoreSections"
-            ) || "{}"
-        );
-
-
-    const required = [
-
-        "OOPs",
-
-        "DBMS",
-
-        "Operating System",
-
-        "Computer Networks"
-
-    ];
-
-
-    if (
-        required.some(
-            subject =>
-                scores[subject] ===
-                undefined
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    const total =
-        required.reduce(
-            (sum,subject) =>
-                sum +
-                scores[subject],
-            0
-        );
-
-
-    const overall =
-        Math.round(
-            total / 4
-        );
-
-
-    document
-        .getElementById(
-            "fundamentalsScore"
-        )
-        .value =
-        overall;
-
-
-    document
-        .getElementById(
-            "fundamentalsResult"
-        )
-        .innerText =
-        `CS Core Overall: ${overall}%`;
-
-
-    autoCalculateReadiness();
-
-}
-
-
-
-/* =========================================================
-   READINESS
-========================================================= */
-
-function autoCalculateReadiness() {
-
-    const values = [
-
-        document.getElementById(
-            "dsaScore"
-        ).value,
-
-        document.getElementById(
-            "fundamentalsScore"
-        ).value,
-
-        document.getElementById(
-            "verbalScore"
-        ).value,
-
-        document.getElementById(
-            "aptitudeScore"
-        ).value
-
-    ];
-
-
-    if (
-        values.every(
-            value =>
-                value !== ""
-        )
-    ) {
-
-        calculateReadiness();
-
-    }
-
-}
-
-
-
-async function calculateReadiness() {
-
-    const dsa =
-        Number(
-            document.getElementById(
-                "dsaScore"
-            ).value
-        );
-
-
-    const core =
-        Number(
-            document.getElementById(
-                "fundamentalsScore"
-            ).value
-        );
-
-
-    const verbal =
-        Number(
-            document.getElementById(
-                "verbalScore"
-            ).value
-        );
-
-
-    const aptitude =
-        Number(
-            document.getElementById(
-                "aptitudeScore"
-            ).value
-        );
-
-
-    const role =
-        document.getElementById(
-            "targetRole"
-        ).value;
-
-
-    let readiness;
-
-
-    if (role === "SDE") {
-
-        readiness =
-            dsa * .40 +
-            core * .25 +
-            verbal * .15 +
-            aptitude * .20;
-
-    }
-    else if (
-        role === "AIML"
-    ) {
-
-        readiness =
-            dsa * .30 +
-            core * .25 +
-            verbal * .15 +
-            aptitude * .30;
-
-    }
-    else {
-
-        readiness =
-            dsa * .15 +
-            core * .25 +
-            verbal * .20 +
-            aptitude * .40;
-
-    }
-
-
-    readiness =
-        Math.round(
-            readiness
-        );
-
-
-    const scores = {
-
-        DSA:
-            dsa,
-
-        "CS Core":
-            core,
-
-        Verbal:
-            verbal,
-
-        Aptitude:
-            aptitude
-
-    };
-
-
-    const strongest =
-        Object
-            .keys(scores)
-            .reduce(
-                (a,b) =>
-                    scores[a] >
-                    scores[b]
-                        ? a
-                        : b
-            );
-
-
-    const weakest =
-        Object
-            .keys(scores)
-            .reduce(
-                (a,b) =>
-                    scores[a] <
-                    scores[b]
-                        ? a
-                        : b
-            );
-
-
-    document
-        .getElementById(
-            "readinessResult"
-        )
-        .innerText =
-        `Placement Readiness: ${readiness}%`;
-
-
-    document
-        .getElementById(
-            "strongArea"
-        )
-        .innerText =
-        `Strongest Area: ${strongest}`;
-
-
-    document
-        .getElementById(
-            "weakArea"
-        )
-        .innerText =
-        `Weakest Area: ${weakest}`;
-
-
-    document
-        .getElementById(
-            "readinessRecommendation"
-        )
-        .innerText =
-        `Focus first on ${weakest}.`;
-
-
-    updateDashboard(
-        dsa,
-        core,
-        verbal,
-        aptitude,
-        readiness,
-        strongest,
-        weakest
-    );
-
-
-    generateStudyPlan(
-        weakest
-    );
-
-
-    await saveAssessmentScore(
-
-        dsa,
-        core,
-        verbal,
-        aptitude,
-        readiness
-
-    );
-
-
-    saveProgressLocal(
-
-        dsa,
-        core,
-        verbal,
-        aptitude,
-        readiness
-
-    );
-
-}
-
-
-
-/* =========================================================
-   SAVE SCORES DATABASE
-========================================================= */
-
-async function saveAssessmentScore(
-    dsa,
-    core,
-    verbal,
-    aptitude,
-    readiness
-) {
-
-    if (!currentUser) {
-        return;
-    }
-
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from(
-                "assessment_scores"
-            )
-            .insert({
-
-                user_id:
-                    currentUser.id,
-
-                dsa_score:
-                    dsa,
-
-                cs_core_score:
-                    core,
-
-                verbal_score:
-                    verbal,
-
-                aptitude_score:
-                    aptitude,
-
-                readiness_score:
-                    readiness
-
-            });
-
-
-    if (error) {
-
-        console.error(
-            "Score save error:",
-            error
-        );
-
-    }
-
-}
-
-
-
-async function loadScoresFromSupabase() {
-
-    if (!currentUser) {
-        return;
-    }
-
-
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from(
-                "assessment_scores"
-            )
-            .select("*")
-            .eq(
-                "user_id",
-                currentUser.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending:
-                        false
-                }
-            )
-            .limit(1);
-
-
-    if (
-        error ||
-        !data ||
-        !data.length
-    ) {
-
-        return;
-
-    }
-
-
-    const score =
-        data[0];
-
-
-    document.getElementById(
-        "dsaScore"
-    ).value =
-        score.dsa_score;
-
-
-    document.getElementById(
-        "fundamentalsScore"
-    ).value =
-        score.cs_core_score;
-
-
-    document.getElementById(
-        "verbalScore"
-    ).value =
-        score.verbal_score;
-
-
-    document.getElementById(
-        "aptitudeScore"
-    ).value =
-        score.aptitude_score;
-
-
-    updateDashboard(
-
-        score.dsa_score,
-
-        score.cs_core_score,
-
-        score.verbal_score,
-
-        score.aptitude_score,
-
-        score.readiness_score,
-
-        "--",
-
-        "--"
-
-    );
-
-}
-
-
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-function updateDashboard(
-    dsa,
-    core,
-    verbal,
-    aptitude,
-    readiness,
-    strongest,
-    weakest
-) {
-
-    document.getElementById(
-        "summaryReadiness"
-    ).innerText =
-        `${readiness}%`;
-
-
-    document.getElementById(
-        "heroScore"
-    ).innerText =
-        `${readiness}%`;
-
-
-    document.getElementById(
-        "heroProgressBar"
-    ).style.width =
-        `${readiness}%`;
-
-
-    document.getElementById(
-        "dashboardDSA"
-    ).innerText =
-        `${dsa}%`;
-
-
-    document.getElementById(
-        "dashboardFundamentals"
-    ).innerText =
-        `${core}%`;
-
-
-    document.getElementById(
-        "dashboardVerbal"
-    ).innerText =
-        `${verbal}%`;
-
-
-    document.getElementById(
-        "dashboardAptitude"
-    ).innerText =
-        `${aptitude}%`;
-
-
-    document.getElementById(
-        "dsaSkillText"
-    ).innerText =
-        `${dsa}%`;
-
-
-    document.getElementById(
-        "dsaSkillBar"
-    ).style.width =
-        `${dsa}%`;
-
-
-    document.getElementById(
-        "fundamentalsSkillText"
-    ).innerText =
-        `${core}%`;
-
-
-    document.getElementById(
-        "fundamentalsSkillBar"
-    ).style.width =
-        `${core}%`;
-
-
-    document.getElementById(
-        "verbalSkillText"
-    ).innerText =
-        `${verbal}%`;
-
-
-    document.getElementById(
-        "verbalSkillBar"
-    ).style.width =
-        `${verbal}%`;
-
-
-    document.getElementById(
-        "aptitudeSkillText"
-    ).innerText =
-        `${aptitude}%`;
-
-
-    document.getElementById(
-        "aptitudeSkillBar"
-    ).style.width =
-        `${aptitude}%`;
-
-
-    document.getElementById(
-        "summaryStrongest"
-    ).innerText =
-        strongest;
-
-
-    document.getElementById(
-        "summaryWeakest"
-    ).innerText =
-        weakest;
-
-
-    document.getElementById(
-        "smartFocus"
-    ).innerText =
-        weakest === "--"
-            ? "Keep practicing."
-            : `Focus on ${weakest} first.`;
-
-
-    updateSkillRadar(
-        dsa,
-        core,
-        verbal,
-        aptitude
-    );
-
-}
-
-
-
-/* =========================================================
-   MISTAKES DATABASE
-========================================================= */
-
-async function addMistake(
-    subject,
-    topic,
-    question,
-    correctAnswer
-) {
-
-    const localMistakes =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseMistakes"
-            ) || "[]"
-        );
-
-
-    localMistakes.push({
-
-        subject,
-        topic,
-        question,
-        correct_answer:
-            correctAnswer
-
-    });
-
-
-    localStorage.setItem(
-        "prepsenseMistakes",
-        JSON.stringify(
-            localMistakes
-        )
-    );
-
-
-    if (currentUser) {
-
-        await supabaseClient
-            .from(
-                "mistakes"
-            )
-            .insert({
-
-                user_id:
-                    currentUser.id,
-
-                subject:
-                    subject,
-
-                topic:
-                    topic,
-
-                question:
-                    question,
-
-                correct_answer:
-                    correctAnswer
-
-            });
-
-    }
-
-
-    renderMistakes(
-        localMistakes
-    );
-
-}
-
-
-
-async function loadMistakesFromSupabase() {
-
-    if (!currentUser) {
-        return;
-    }
-
-
-    const {
-        data
-    } =
-        await supabaseClient
-            .from(
-                "mistakes"
-            )
-            .select("*")
-            .eq(
-                "user_id",
-                currentUser.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending:
-                        false
-                }
-            );
-
-
-    if (!data) {
-        return;
-    }
-
-
-    localStorage.setItem(
-        "prepsenseMistakes",
-        JSON.stringify(data)
-    );
-
-
-    renderMistakes(
-        data
-    );
-
-}
-
-
-
-function renderMistakes(
-    mistakes
-) {
-
-    const container =
-        document.getElementById(
-            "mistakeList"
-        );
-
-
-    if (!mistakes.length) {
-
-        container.innerHTML =
-            "No mistakes recorded yet.";
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        mistakes.map(
-            item => `
-
-            <div class="result-box">
-
-                <strong>
-                    ${item.subject}
-                </strong>
-
-                <br>
-
-                ${item.question}
-
-                <br>
-
-                Correct:
-                ${item.correct_answer}
-
-            </div>
-
-            `
-        ).join("");
-
-}
-
-
-
-async function clearMistakes() {
-
-    localStorage.removeItem(
-        "prepsenseMistakes"
-    );
-
-
-    if (currentUser) {
-
-        await supabaseClient
-            .from(
-                "mistakes"
-            )
-            .delete()
-            .eq(
-                "user_id",
-                currentUser.id
-            );
-
-    }
-
-
-    renderMistakes([]);
-
-}
-
-
-
-/* =========================================================
-   STUDY PLAN
-========================================================= */
-
-function generateStudyPlan(
-    weakest
-) {
-
-    const plans = {
-
-        DSA: [
-
-            "Arrays",
-
-            "Searching",
-
-            "Sorting",
-
-            "Binary Search",
-
-            "Linked List",
-
-            "Mock Test",
-
-            "Revision"
-
-        ],
-
-
-        "CS Core": [
-
-            "OOPs",
-
-            "DBMS",
-
-            "Operating System",
-
-            "Computer Networks",
-
-            "Flashcards",
-
-            "Mock Test",
-
-            "Revision"
-
-        ],
-
-
-        Verbal: [
-
-            "Grammar",
-
-            "Tenses",
-
-            "Vocabulary",
-
-            "Sentence Correction",
-
-            "Reading",
-
-            "Mock Test",
-
-            "Revision"
-
-        ],
-
-
-        Aptitude: [
-
-            "Percentage",
-
-            "Ratio",
-
-            "Speed Time Distance",
-
-            "Number Series",
-
-            "Reasoning",
-
-            "Mock Test",
-
-            "Revision"
-
-        ]
-
-    };
-
-
-    const plan =
-        plans[weakest];
-
-
-    const container =
-        document.getElementById(
-            "studyPlan"
-        );
-
-
-    container.innerHTML =
-        "";
-
-
-    plan.forEach(
-        (task,index) => {
-
-            container.innerHTML += `
-
-                <div class="task-item">
-
-                    <input
-                        type="checkbox"
-                        id="studyTask${index}"
-                        onchange="updateStudyProgress()"
-                    >
-
-                    ${task}
-
-                </div>
-
-            `;
-
-        }
-    );
-
-}
-
-
-
-async function updateStudyProgress() {
-
-    const tasks =
-        document.querySelectorAll(
-            "#studyPlan .task-item"
-        );
-
-
-    let completed =
-        0;
-
-
-    const databaseTasks = [];
-
-
-    tasks.forEach(
-        task => {
-
-            const checkbox =
-                task.querySelector(
-                    "input"
-                );
-
-
-            const taskName =
-                task.textContent
-                    .trim();
-
-
-            if (
-                checkbox.checked
-            ) {
-
-                completed++;
-
-                task.classList.add(
-                    "completed"
-                );
-
-            }
-            else {
-
-                task.classList.remove(
-                    "completed"
-                );
-
-            }
-
-
-            databaseTasks.push({
-
-                task_name:
-                    taskName,
-
-                is_completed:
-                    checkbox.checked
-
-            });
-
-        }
-    );
-
-
-    const percentage =
-        tasks.length
-            ? Math.round(
-                completed /
-                tasks.length *
-                100
-            )
-            : 0;
-
-
-    document.getElementById(
-        "studyProgressBar"
-    ).style.width =
-        `${percentage}%`;
-
-
-    document.getElementById(
-        "studyProgressText"
-    ).innerText =
-        `${percentage}% completed`;
-
-
-    if (
-        currentUser &&
-        databaseTasks.length
-    ) {
-
-        await supabaseClient
-            .from(
-                "study_progress"
-            )
-            .delete()
-            .eq(
-                "user_id",
-                currentUser.id
-            );
-
-
-        await supabaseClient
-            .from(
-                "study_progress"
-            )
-            .insert(
-
-                databaseTasks.map(
-                    task => ({
-
-                        user_id:
-                            currentUser.id,
-
-                        ...task
-
-                    })
-                )
-
-            );
-
-    }
-
-}
-
-
-
-/* =========================================================
-   FLASHCARDS
-========================================================= */
-
-const flashcards = {
-
+let adaptiveQuestionsPool = [];
+let activeAssessmentData = {};
+
+/* EXPANDED FLASHCARDS BANK */
+const MASTER_FLASHCARDS = {
     DSA: [
-
-        {
-            id: "d1",
-            q: "Binary Search complexity?",
-            a: "O(log n)"
-        },
-
-        {
-            id: "d2",
-            q: "Stack principle?",
-            a: "LIFO"
-        }
-
+        { id: "d1", q: "Time complexity of Binary Search?", a: "O(log n)" },
+        { id: "d2", q: "Stack follows which principle?", a: "LIFO (Last In First Out)" },
+        { id: "d3", q: "Best case time complexity of Quick Sort?", a: "O(n log n)" },
+        { id: "d4", q: "Queue follows which principle?", a: "FIFO (First In First Out)" },
+        { id: "d5", q: "Which data structure is used for BFS in graphs?", a: "Queue" },
+        { id: "d6", q: "Worst case time complexity of Merge Sort?", a: "O(n log n)" }
     ],
-
-
     CS_CORE: [
-
-        {
-            id: "c1",
-            q: "What is Encapsulation?",
-            a: "Hiding internal data."
-        },
-
-        {
-            id: "c2",
-            q: "What is a Primary Key?",
-            a: "A unique row identifier."
-        }
-
+        { id: "c1", q: "What is Encapsulation?", a: "Wrapping data and methods into a single unit." },
+        { id: "c2", q: "What is a Primary Key?", a: "A unique identifier for each row in a database table." },
+        { id: "c3", q: "What is Virtual Memory?", a: "Memory management capability using secondary storage as RAM." },
+        { id: "c4", q: "What is Deadlock?", a: "Situation where two or more processes wait indefinitely for each other." }
     ],
-
-
     VERBAL: [
-
-        {
-            id: "v1",
-            q: "Past tense of go?",
-            a: "Went"
-        }
-
+        { id: "v1", q: "Past participle of 'Write'?", a: "Written" },
+        { id: "v2", q: "Antonym of 'Abundant'?", a: "Scarce / Meager" }
     ],
-
-
     APTITUDE: [
-
-        {
-            id: "a1",
-            q: "Distance formula?",
-            a: "Speed × Time"
-        }
-
+        { id: "a1", q: "Formula for Speed?", a: "Distance / Time" },
+        { id: "a2", q: "What is 15% of 200?", a: "30" }
     ]
-
 };
 
-
-
-function loadFlashcards() {
-
-    currentFlashcardSubject =
-        document.getElementById(
-            "flashcardSubject"
-        ).value;
-
-
-    currentFlashcardIndex =
-        0;
-
-
-    displayFlashcard();
-
+/* SHUFFLE UTILITY */
+function shuffleArray(array) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
+/* DYNAMIC QUESTION GENERATOR */
+function generateDynamicQuestions(subject, count = 10) {
+    const templates = {
+        DSA: [
+            { q: "Time complexity of searching in a balanced BST?", o: ["O(log n)", "O(n)", "O(1)"], c: 0 },
+            { q: "Data structure required for recursion?", o: ["Stack", "Queue", "Array"], c: 0 },
+            { q: "Auxiliary space complexity of Merge Sort?", o: ["O(n)", "O(1)", "O(log n)"], c: 0 },
+            { q: "Which algorithm finds shortest path in a weighted graph?", o: ["Dijkstra's", "Kruskal's", "Prim's"], c: 0 },
+            { q: "Worst case time complexity of Hash Table lookup?", o: ["O(n)", "O(1)", "O(log n)"], c: 0 }
+        ],
+        "CS Core": [
+            { q: "Which concept allows interface reuse with multiple forms?", o: ["Polymorphism", "Encapsulation", "Inheritance"], c: 0 },
+            { q: "ACID property 'A' stands for?", o: ["Atomicity", "Availability", "Accuracy"], c: 0 },
+            { q: "Which OS scheduling uses time quantum?", o: ["Round Robin", "FCFS", "SJF"], c: 0 },
+            { q: "Port number for HTTP?", o: ["80", "443", "21"], c: 0 }
+        ],
+        Verbal: [
+            { q: "Choose correct past tense: 'He ____ to college yesterday.'", o: ["went", "go", "gone"], c: 0 },
+            { q: "Synonym for 'Meticulous'?", o: ["Careful", "Careless", "Fast"], c: 0 }
+        ],
+        Aptitude: [
+            { q: "20% of a number is 50. What is the number?", o: ["250", "200", "300"], c: 0 },
+            { q: "A train covers 120 km in 2 hours. Speed?", o: ["60 km/h", "50 km/h", "70 km/h"], c: 0 }
+        ]
+    };
 
+    let basePool = templates[subject] || templates["DSA"];
+    let generated = [];
 
-function displayFlashcard() {
+    for (let i = 0; i < count; i++) {
+        let template = basePool[i % basePool.length];
+        let choices = shuffleArray([...template.o]);
+        let correctText = template.o[template.c];
+        let correctIndex = choices.indexOf(correctText);
 
-    const cards =
-        flashcards[
-            currentFlashcardSubject
-        ];
-
-
-    const card =
-        cards[
-            currentFlashcardIndex
-        ];
-
-
-    document.getElementById(
-        "flashcardQuestion"
-    ).innerText =
-        card.q;
-
-
-    document.getElementById(
-        "flashcardAnswer"
-    ).innerText =
-        card.a;
-
-
-    document.getElementById(
-        "flashcardNumber"
-    ).innerText =
-        `Card ${
-            currentFlashcardIndex + 1
-        } / ${cards.length}`;
-
-
-    document.getElementById(
-        "flashcardInner"
-    ).classList.remove(
-        "flipped"
-    );
-
-}
-
-
-
-function flipFlashcard() {
-
-    document.getElementById(
-        "flashcardInner"
-    ).classList.toggle(
-        "flipped"
-    );
-
-}
-
-
-
-function nextFlashcard() {
-
-    const cards =
-        flashcards[
-            currentFlashcardSubject
-        ];
-
-
-    currentFlashcardIndex =
-        (
-            currentFlashcardIndex +
-            1
-        ) %
-        cards.length;
-
-
-    displayFlashcard();
-
-}
-
-
-
-function previousFlashcard() {
-
-    const cards =
-        flashcards[
-            currentFlashcardSubject
-        ];
-
-
-    currentFlashcardIndex =
-        (
-            currentFlashcardIndex -
-            1 +
-            cards.length
-        ) %
-        cards.length;
-
-
-    displayFlashcard();
-
-}
-
-
-
-function markFlashcardKnown() {
-
-    const card =
-        flashcards[
-            currentFlashcardSubject
-        ][
-            currentFlashcardIndex
-        ];
-
-
-    knownFlashcards.add(
-        card.id
-    );
-
-
-    localStorage.setItem(
-        "prepsenseKnownFlashcards",
-        JSON.stringify(
-            [...knownFlashcards]
-        )
-    );
-
-
-    removeRevisionCard(
-        card.id
-    );
-
-
-    nextFlashcard();
-
-}
-
-
-
-function markFlashcardRevision() {
-
-    const card =
-        flashcards[
-            currentFlashcardSubject
-        ][
-            currentFlashcardIndex
-        ];
-
-
-    let queue =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseRevisionQueue"
-            ) || "[]"
-        );
-
-
-    if (
-        !queue.find(
-            item =>
-                item.id === card.id
-        )
-    ) {
-
-        queue.push({
-
-            ...card,
-
-            subject:
-                currentFlashcardSubject
-
+        generated.push({
+            q: `[Set ${Math.floor(Math.random()*90+10)}] ${template.q}`,
+            options: choices,
+            correct: correctIndex,
+            correctText: correctText
         });
-
     }
 
-
-    localStorage.setItem(
-        "prepsenseRevisionQueue",
-        JSON.stringify(queue)
-    );
-
-
-    renderRevisionQueue();
-
-    nextFlashcard();
-
+    return shuffleArray(generated);
 }
 
+/* NAVIGATION */
+function showPage(pageId, element) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
 
-
-function removeRevisionCard(
-    id
-) {
-
-    let queue =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseRevisionQueue"
-            ) || "[]"
-        );
-
-
-    queue =
-        queue.filter(
-            card =>
-                card.id !== id
-        );
-
-
-    localStorage.setItem(
-        "prepsenseRevisionQueue",
-        JSON.stringify(queue)
-    );
-
-
-    renderRevisionQueue();
-
+    document.getElementById(pageId)?.classList.add("active");
+    if (element) element.classList.add("active");
 }
 
+/* AUTHENTICATION VIA SUPABASE */
+async function signUpUser() {
+    const name = document.getElementById("authName").value.trim();
+    const role = document.getElementById("authRole").value;
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const message = document.getElementById("authMessage");
 
-
-function renderRevisionQueue() {
-
-    const queue =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseRevisionQueue"
-            ) || "[]"
-        );
-
-
-    const container =
-        document.getElementById(
-            "revisionQueueList"
-        );
-
-
-    if (!queue.length) {
-
-        container.innerHTML =
-            "🎉 Revision queue is empty.";
-
+    if (!name || !role || !email || !password) {
+        message.innerText = "Please fill all fields.";
         return;
-
     }
 
+    if (!supabaseClient) {
+        showApplication();
+        return;
+    }
 
-    container.innerHTML =
-        queue.map(
-            card => `
+    message.innerText = "Creating account...";
+    const { data, error } = await supabaseClient.auth.signUp({
+        email: email, password: password,
+        options: { data: { name: name, role: role } }
+    });
 
-            <div class="result-box">
-
-                <strong>
-                    ${card.subject}
-                </strong>
-
-                <br>
-
-                ${card.q}
-
-                <br>
-
-                Answer:
-                ${card.a}
-
-            </div>
-
-            `
-        ).join("");
-
+    if (error) {
+        message.innerText = "Signup failed: " + error.message;
+    } else {
+        message.innerText = "Account created ✅ Please login.";
+    }
 }
 
+async function loginUser() {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const message = document.getElementById("authMessage");
 
-
-/* =========================================================
-   ADAPTIVE TEST
-========================================================= */
-
-const adaptiveQuestions = [
-
-    {
-        q: "Which structure follows LIFO?",
-        options: [
-            "Queue",
-            "Stack",
-            "Tree"
-        ],
-        correct: 1
-    },
-
-    {
-        q: "Binary Search requires?",
-        options: [
-            "Sorted data",
-            "Random data",
-            "Graph"
-        ],
-        correct: 0
-    },
-
-    {
-        q: "What prevents infinite recursion?",
-        options: [
-            "Base case",
-            "Array",
-            "Hashing"
-        ],
-        correct: 0
+    if (!email || !password) {
+        message.innerText = "Enter email and password.";
+        return;
     }
 
-];
+    if (!supabaseClient) {
+        showApplication();
+        return;
+    }
 
+    message.innerText = "Logging in...";
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
+    if (error) {
+        message.innerText = error.message;
+    } else {
+        currentUser = data.user;
+        showApplication();
+        loadProfileFromSupabase();
+    }
+}
 
+async function logoutUser() {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    currentUser = null;
+    hideApplication();
+}
+
+function showApplication() {
+    document.getElementById("authScreen").style.display = "none";
+    document.querySelector(".app").style.display = "flex";
+}
+
+function hideApplication() {
+    document.getElementById("authScreen").style.display = "flex";
+    document.querySelector(".app").style.display = "none";
+}
+
+async function loadProfileFromSupabase() {
+    if (!currentUser || !supabaseClient) return;
+    const { data } = await supabaseClient.from("profiles").select("*").eq("id", currentUser.id).single();
+    if (data) {
+        document.getElementById("welcomeTitle").innerText = `Hi, ${data.name} 👋`;
+        document.getElementById("topRole").innerText = data.role;
+        document.getElementById("studentName").value = data.name;
+        document.getElementById("profileRole").value = data.role;
+    }
+}
+
+async function saveProfile() {
+    const name = document.getElementById("studentName").value.trim();
+    const role = document.getElementById("profileRole").value;
+
+    if (currentUser && supabaseClient) {
+        await supabaseClient.from("profiles").upsert({ id: currentUser.id, name, role });
+    }
+    document.getElementById("welcomeTitle").innerText = `Hi, ${name} 👋`;
+    document.getElementById("topRole").innerText = role;
+    document.getElementById("profileMessage").innerText = "Profile saved ✅";
+}
+
+/* ASSESSMENTS */
+function generateAndRenderAssessment(subject, containerId) {
+    const questions = generateDynamicQuestions(subject, 10);
+    activeAssessmentData[subject] = questions;
+
+    const container = document.getElementById(containerId);
+    container.innerHTML = questions.map((q, idx) => `
+        <div class="question">
+            <p><strong>${idx + 1}. ${q.q}</strong></p>
+            ${q.options.map((opt, oIdx) => `
+                <label class="option">
+                    <input type="radio" name="${subject}_q${idx}" value="${oIdx}">
+                    ${opt}
+                </label>
+            `).join('')}
+        </div>
+    `).join('');
+}
+
+function submitAssessment(subject, containerId, resultId, scoreInputId) {
+    const questions = activeAssessmentData[subject];
+    if (!questions) return alert("Please load assessment questions first.");
+
+    let correctCount = 0;
+    questions.forEach((q, idx) => {
+        const sel = document.querySelector(`input[name="${subject}_q${idx}"]:checked`);
+        if (sel && parseInt(sel.value) === q.correct) {
+            correctCount++;
+        } else {
+            addMistake(subject, "General", q.q, q.correctText);
+        }
+    });
+
+    const score = Math.round((correctCount / questions.length) * 100);
+    document.getElementById(scoreInputId).value = score;
+    document.getElementById(resultId).innerText = `Score: ${score}% (${correctCount}/${questions.length} Correct)`;
+
+    calculateReadiness();
+}
+
+/* ADAPTIVE TEST */
 function startAdaptiveAssessment() {
+    const subject = document.getElementById("adaptiveSubject").value;
+    adaptiveQuestionsPool = generateDynamicQuestions(subject, 10);
+    adaptiveIndex = 0;
+    adaptiveCorrect = 0;
 
-    adaptiveIndex =
-        0;
-
-
-    adaptiveCorrect =
-        0;
-
-
-    document.getElementById(
-        "adaptiveBox"
-    ).style.display =
-        "block";
-
-
-    document.getElementById(
-        "adaptiveResultCard"
-    ).style.display =
-        "none";
-
-
+    document.getElementById("adaptiveBox").style.display = "block";
+    document.getElementById("adaptiveResultCard").style.display = "none";
     showAdaptiveQuestion();
-
 }
-
-
 
 function showAdaptiveQuestion() {
-
-    if (
-        adaptiveIndex >=
-        adaptiveQuestions.length
-    ) {
-
+    if (adaptiveIndex >= adaptiveQuestionsPool.length) {
         finishAdaptiveAssessment();
-
         return;
-
     }
 
+    const q = adaptiveQuestionsPool[adaptiveIndex];
+    document.getElementById("adaptiveCounter").innerText = `Question ${adaptiveIndex + 1} / ${adaptiveQuestionsPool.length}`;
+    document.getElementById("adaptiveQuestion").innerText = q.q;
 
-    const question =
-        adaptiveQuestions[
-            adaptiveIndex
-        ];
-
-
-    document.getElementById(
-        "adaptiveCounter"
-    ).innerText =
-        `Question ${
-            adaptiveIndex + 1
-        } / ${
-            adaptiveQuestions.length
-        }`;
-
-
-    document.getElementById(
-        "adaptiveQuestion"
-    ).innerText =
-        question.q;
-
-
-    const container =
-        document.getElementById(
-            "adaptiveOptions"
-        );
-
-
-    container.innerHTML =
-        "";
-
-
-    question.options.forEach(
-        (option,index) => {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.innerText =
-                option;
-
-
-            button.onclick =
-                () => {
-
-                    if (
-                        index ===
-                        question.correct
-                    ) {
-
-                        adaptiveCorrect++;
-
-                    }
-
-
-                    adaptiveIndex++;
-
-                    showAdaptiveQuestion();
-
-                };
-
-
-            container.appendChild(
-                button
-            );
-
-        }
-    );
-
+    const container = document.getElementById("adaptiveOptions");
+    container.innerHTML = q.options.map((opt, idx) => `
+        <button class="btn-secondary" style="display:block; width:100%; margin:8px 0; text-align:left;" onclick="selectAdaptiveOption(${idx})">${opt}</button>
+    `).join('');
 }
 
-
+function selectAdaptiveOption(index) {
+    const q = adaptiveQuestionsPool[adaptiveIndex];
+    if (index === q.correct) {
+        adaptiveCorrect++;
+    } else {
+        addMistake("Adaptive", "General", q.q, q.correctText);
+    }
+    adaptiveIndex++;
+    showAdaptiveQuestion();
+}
 
 function finishAdaptiveAssessment() {
+    document.getElementById("adaptiveBox").style.display = "none";
+    document.getElementById("adaptiveResultCard").style.display = "block";
 
-    document.getElementById(
-        "adaptiveBox"
-    ).style.display =
-        "none";
-
-
-    document.getElementById(
-        "adaptiveResultCard"
-    ).style.display =
-        "block";
-
-
-    const score =
-        Math.round(
-            adaptiveCorrect /
-            adaptiveQuestions.length *
-            100
-        );
-
-
-    document.getElementById(
-        "adaptiveFinalScore"
-    ).innerText =
-        `${score}%`;
-
-
-    document.getElementById(
-        "adaptiveFinalMessage"
-    ).innerText =
-        score >= 70
-            ? "Good performance ✅"
-            : "Revise and try again.";
-
+    const score = Math.round((adaptiveCorrect / adaptiveQuestionsPool.length) * 100);
+    document.getElementById("adaptiveFinalScore").innerText = `Final Score: ${score}%`;
+    document.getElementById("adaptiveFinalMessage").innerText = score >= 70 ? "Excellent Performance! 🎉" : "Needs Revision. Review your mistakes.";
 }
 
+/* READINESS CALCULATOR */
+function calculateReadiness() {
+    const dsa = Number(document.getElementById("dsaScore").value) || 0;
+    const core = Number(document.getElementById("fundamentalsScore").value) || 0;
+    const verbal = Number(document.getElementById("verbalScore").value) || 0;
+    const aptitude = Number(document.getElementById("aptitudeScore").value) || 0;
+    const role = document.getElementById("targetRole").value;
 
+    let readiness = role === "SDE" ? (dsa * 0.40 + core * 0.25 + verbal * 0.15 + aptitude * 0.20) : (dsa * 0.25 + core * 0.25 + verbal * 0.25 + aptitude * 0.25);
+    readiness = Math.round(readiness);
 
-/* =========================================================
-   PROGRESS
-========================================================= */
+    document.getElementById("readinessResult").innerText = `${readiness}%`;
+    updateDashboard(dsa, core, verbal, aptitude, readiness);
+}
 
-function saveProgressLocal(
-    dsa,
-    core,
-    verbal,
-    aptitude,
-    readiness
-) {
+function updateDashboard(dsa, core, verbal, aptitude, readiness) {
+    document.getElementById("summaryReadiness").innerText = `${readiness}%`;
+    document.getElementById("heroScore").innerText = `${readiness}%`;
+    document.getElementById("heroProgressBar").style.width = `${readiness}%`;
 
-    let history =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseHistory"
-            ) || "[]"
-        );
+    document.getElementById("dashboardDSA").innerText = `${dsa}%`;
+    document.getElementById("dashboardFundamentals").innerText = `${core}%`;
+    document.getElementById("dashboardVerbal").innerText = `${verbal}%`;
+    document.getElementById("dashboardAptitude").innerText = `${aptitude}%`;
 
+    updateSkillRadar(dsa, core, verbal, aptitude);
+}
 
-    history.push({
+/* MISTAKES NOTEBOOK */
+function addMistake(subject, topic, question, correctAnswer) {
+    let mistakes = JSON.parse(localStorage.getItem("prepsenseMistakes") || "[]");
+    mistakes.push({ subject, topic, question, correct_answer: correctAnswer });
+    localStorage.setItem("prepsenseMistakes", JSON.stringify(mistakes));
+    renderMistakes();
+}
 
-        dsa,
-        core,
-        verbal,
-        aptitude,
-        readiness
+function renderMistakes() {
+    let mistakes = JSON.parse(localStorage.getItem("prepsenseMistakes") || "[]");
+    const container = document.getElementById("mistakeList");
+    if (!mistakes.length) return container.innerHTML = "No mistakes logged yet.";
 
+    container.innerHTML = mistakes.map(m => `
+        <div class="result-box" style="margin-bottom:10px;">
+            <strong>[${m.subject}]</strong> ${m.question}<br>
+            <span style="color:#22c55e;">Correct Answer: ${m.correct_answer}</span>
+        </div>
+    `).join('');
+}
+
+function clearMistakes() {
+    localStorage.removeItem("prepsenseMistakes");
+    renderMistakes();
+}
+
+/* FLASHCARDS */
+function loadFlashcards() {
+    currentFlashcardSubject = document.getElementById("flashcardSubject").value;
+    activeFlashcardsList = shuffleArray(MASTER_FLASHCARDS[currentFlashcardSubject] || MASTER_FLASHCARDS["DSA"]);
+    currentFlashcardIndex = 0;
+    displayFlashcard();
+}
+
+function displayFlashcard() {
+    if (!activeFlashcardsList.length) return;
+    const card = activeFlashcardsList[currentFlashcardIndex];
+    document.getElementById("flashcardQuestion").innerText = card.q;
+    document.getElementById("flashcardAnswer").innerText = card.a;
+    document.getElementById("flashcardNumber").innerText = `Card ${currentFlashcardIndex + 1} of ${activeFlashcardsList.length}`;
+    document.getElementById("flashcardInner").classList.remove("flipped");
+}
+
+function flipFlashcard() {
+    document.getElementById("flashcardInner").classList.toggle("flipped");
+}
+
+function nextFlashcard() {
+    currentFlashcardIndex = (currentFlashcardIndex + 1) % activeFlashcardsList.length;
+    displayFlashcard();
+}
+
+function previousFlashcard() {
+    currentFlashcardIndex = (currentFlashcardIndex - 1 + activeFlashcardsList.length) % activeFlashcardsList.length;
+    displayFlashcard();
+}
+
+function markFlashcardKnown() { nextFlashcard(); }
+function markFlashcardRevision() {
+    const card = activeFlashcardsList[currentFlashcardIndex];
+    let queue = JSON.parse(localStorage.getItem("prepsenseRevisionQueue") || "[]");
+    queue.push(card);
+    localStorage.setItem("prepsenseRevisionQueue", JSON.stringify(queue));
+    renderRevisionQueue();
+    nextFlashcard();
+}
+
+function renderRevisionQueue() {
+    let queue = JSON.parse(localStorage.getItem("prepsenseRevisionQueue") || "[]");
+    const container = document.getElementById("revisionQueueList");
+    if (!queue.length) return container.innerHTML = "Revision queue is empty.";
+    container.innerHTML = queue.map(c => `<div class="result-box" style="margin-bottom:8px;"><strong>${c.q}</strong><br>${c.a}</div>`).join('');
+}
+
+/* RADAR CHART */
+function updateSkillRadar(dsa=0, core=0, verbal=0, aptitude=0) {
+    const canvas = document.getElementById("skillRadarChart");
+    if (!canvas) return;
+    if (skillRadarChartInstance) skillRadarChartInstance.destroy();
+
+    skillRadarChartInstance = new Chart(canvas, {
+        type: "radar",
+        data: {
+            labels: ["DSA", "CS Core", "Verbal", "Aptitude"],
+            datasets: [{ label: "Skill Level", data: [dsa, core, verbal, aptitude], backgroundColor: "rgba(91,95,239,0.2)", borderColor: "#5b5fef" }]
+        },
+        options: { scales: { r: { min: 0, max: 100 } } }
     });
-
-
-    localStorage.setItem(
-        "prepsenseHistory",
-        JSON.stringify(history)
-    );
-
-
-    renderProgress();
-
 }
 
-
-
-function renderProgress() {
-
-    const history =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseHistory"
-            ) || "[]"
-        );
-
-
-    const historyList =
-        document.getElementById(
-            "historyList"
-        );
-
-
-    historyList.innerHTML =
-        history.map(
-            (item,index) => `
-
-            <div class="result-box">
-
-                Attempt ${index + 1}
-
-                <br>
-
-                Readiness:
-                ${item.readiness}%
-
-            </div>
-
-            `
-        ).join("");
-
-
-    const canvas =
-        document.getElementById(
-            "progressChart"
-        );
-
-
-    if (
-        !canvas ||
-        !history.length
-    ) {
-        return;
-    }
-
-
-    if (
-        progressChartInstance
-    ) {
-
-        progressChartInstance
-            .destroy();
-
-    }
-
-
-    progressChartInstance =
-        new Chart(
-            canvas,
-            {
-
-                type:
-                    "line",
-
-                data: {
-
-                    labels:
-                        history.map(
-                            (_,index) =>
-                                `Attempt ${index + 1}`
-                        ),
-
-                    datasets: [
-
-                        {
-
-                            label:
-                                "Readiness",
-
-                            data:
-                                history.map(
-                                    item =>
-                                        item.readiness
-                                )
-
-                        }
-
-                    ]
-
-                }
-
-            }
-        );
-
-}
-
-
-
-/* =========================================================
-   RADAR
-========================================================= */
-
-function updateSkillRadar(
-    dsa = 0,
-    core = 0,
-    verbal = 0,
-    aptitude = 0
-) {
-
-    const canvas =
-        document.getElementById(
-            "skillRadarChart"
-        );
-
-
-    if (!canvas) {
-        return;
-    }
-
-
-    if (
-        skillRadarChartInstance
-    ) {
-
-        skillRadarChartInstance
-            .destroy();
-
-    }
-
-
-    skillRadarChartInstance =
-        new Chart(
-            canvas,
-            {
-
-                type:
-                    "radar",
-
-                data: {
-
-                    labels: [
-
-                        "DSA",
-
-                        "CS Core",
-
-                        "Verbal",
-
-                        "Aptitude"
-
-                    ],
-
-                    datasets: [
-
-                        {
-
-                            label:
-                                "Skill Level",
-
-                            data: [
-
-                                dsa,
-
-                                core,
-
-                                verbal,
-
-                                aptitude
-
-                            ]
-
-                        }
-
-                    ]
-
-                },
-
-                options: {
-
-                    scales: {
-
-                        r: {
-
-                            min: 0,
-
-                            max: 100
-
-                        }
-
-                    }
-
-                }
-
-            }
-        );
-
-}
-
-
-
-/* =========================================================
-   PROFILE PHOTO
-========================================================= */
-
-function handleProfilePhoto(
-    event
-) {
-
-    const file =
-        event.target.files[0];
-
-
-    if (!file) {
-        return;
-    }
-
-
-    const reader =
-        new FileReader();
-
-
-    reader.onload =
-        function(e) {
-
-            localStorage.setItem(
-                "prepnexaProfilePhoto",
-                e.target.result
-            );
-
-
-            updateProfilePhotoUI();
-
-        };
-
-
-    reader.readAsDataURL(
-        file
-    );
-
-}
-
-
-
-function removeProfilePhoto() {
-
-    localStorage.removeItem(
-        "prepnexaProfilePhoto"
-    );
-
-
-    updateProfilePhotoUI();
-
-}
-
-
-
-function updateProfilePhotoUI() {
-
-    const photo =
-        localStorage.getItem(
-            "prepnexaProfilePhoto"
-        );
-
-
-    const saved =
-        JSON.parse(
-            localStorage.getItem(
-                "prepsenseProfile"
-            ) || "{}"
-        );
-
-
-    const initial =
-        saved.name
-            ? saved.name[0]
-                .toUpperCase()
-            : "U";
-
-
-    [
-
-        document.getElementById(
-            "avatarText"
-        ),
-
-        document.getElementById(
-            "profilePhotoPreview"
-        )
-
-    ].forEach(
-        element => {
-
-            if (!element) {
-                return;
-            }
-
-
-            if (photo) {
-
-                element.style.backgroundImage =
-                    `url("${photo}")`;
-
-
-                element.innerText =
-                    "";
-
-            }
-            else {
-
-                element.style.backgroundImage =
-                    "";
-
-
-                element.innerText =
-                    initial;
-
-            }
-
-        }
-    );
-
-}
-
-
-
-/* =========================================================
-   APPEARANCE
-========================================================= */
-
-function setModePreference(
-    mode
-) {
-
-    localStorage.setItem(
-        "prepnexaModePreference",
-        mode
-    );
-
-
+/* APPEARANCE & THEME */
+function setModePreference(mode) {
+    localStorage.setItem("prepnexaModePreference", mode);
     applyAppearance();
-
 }
 
-
-
-function setThemePreference(
-    theme
-) {
-
-    localStorage.setItem(
-        "prepnexaThemePreference",
-        theme
-    );
-
-
+function setThemePreference(theme) {
+    localStorage.setItem("prepnexaThemePreference", theme);
     applyAppearance();
-
 }
-
-
 
 function applyAppearance() {
-
-    let mode =
-        localStorage.getItem(
-            "prepnexaModePreference"
-        ) || "system";
-
-
-    const theme =
-        localStorage.getItem(
-            "prepnexaThemePreference"
-        ) || "indigo";
-
+    let mode = localStorage.getItem("prepnexaModePreference") || "light";
+    let theme = localStorage.getItem("prepnexaThemePreference") || "indigo";
 
     if (mode === "system") {
-
-        mode =
-            window.matchMedia(
-                "(prefers-color-scheme: dark)"
-            ).matches
-                ? "dark"
-                : "light";
-
+        mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
 
-
-    document.documentElement
-        .setAttribute(
-            "data-mode",
-            mode
-        );
-
-
-    document.documentElement
-        .setAttribute(
-            "data-theme",
-            theme
-        );
-
+    document.documentElement.setAttribute("data-mode", mode);
+    document.documentElement.setAttribute("data-theme", theme);
 }
 
-
-
-/* =========================================================
-   DIAGNOSIS
-========================================================= */
-
+/* DIAGNOSIS VIA RENDER API */
 async function diagnoseMistake() {
-
-    const description =
-        document.getElementById(
-            "mistakeInput"
-        ).value.trim();
-
-
-    if (!description) {
-        return;
-    }
-
+    const description = document.getElementById("mistakeInput").value.trim();
+    if (!description) return;
 
     try {
-
-        const response =
-            await fetch(
-
-                "https://prepnexa-api.onrender.com/diagnose?description=" +
-
-                encodeURIComponent(
-                    description
-                )
-
-            );
-
-
-        const data =
-            await response.json();
-
-
-        document.getElementById(
-            "diagnosisResult"
-        ).innerText =
-            data.diagnosis;
-
-
-        document.getElementById(
-            "suggestion"
-        ).innerText =
-            data.suggestion;
-
+        const response = await fetch(`${BACKEND_API_URL}/diagnose?description=${encodeURIComponent(description)}`);
+        const data = await response.json();
+        document.getElementById("diagnosisResult").innerText = data.diagnosis;
+        document.getElementById("suggestion").innerText = data.suggestion;
+    } catch {
+        document.getElementById("diagnosisResult").innerText = "Diagnosis Service Offline";
+        document.getElementById("suggestion").innerText = "Check your FastAPI backend server connection.";
     }
-    catch {
-
-        document.getElementById(
-            "diagnosisResult"
-        ).innerText =
-            "Backend not running";
-
-
-        document.getElementById(
-            "suggestion"
-        ).innerText =
-            "Start FastAPI server first.";
-
-    }
-
 }
 
+/* AI COACH VIA RENDER API */
+function setupAiCoach() {
+    const askAiBtn = document.getElementById("askAiBtn");
+    const aiPrompt = document.getElementById("aiPrompt");
+    const aiResponse = document.getElementById("aiResponse");
 
+    if (askAiBtn) {
+        askAiBtn.addEventListener("click", async () => {
+            const prompt = aiPrompt.value.trim();
+            if (!prompt) return aiResponse.innerText = "Please enter a question first.";
 
-/* =========================================================
-   START APP
-========================================================= */
-
-window.addEventListener(
-    "load",
-    async function() {
-
-        applyAppearance();
-
-
-        const known =
-            JSON.parse(
-                localStorage.getItem(
-                    "prepsenseKnownFlashcards"
-                ) || "[]"
-            );
-
-
-        knownFlashcards =
-            new Set(known);
-
-
-        loadFlashcards();
-
-        renderRevisionQueue();
-
-        renderProgress();
-
-        updateProfilePhotoUI();
-
-
-        await checkAuthentication();
-
-        const askAiBtn = document.getElementById("askAiBtn");
-const aiPrompt = document.getElementById("aiPrompt");
-const aiResponse = document.getElementById("aiResponse");
-
-if (askAiBtn) {
-    askAiBtn.addEventListener("click", async () => {
-        const prompt = aiPrompt.value.trim();
-
-        if (!prompt) {
-            aiResponse.innerText = "Please enter a question first.";
-            return;
-        }
-
-        aiResponse.innerText = "Thinking...";
-
-        try {
-            const response = await fetch(
-                "https://prepnexa-api.onrender.com/ai",
-                {
+            aiResponse.innerText = "Thinking...";
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/ai`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        prompt: prompt
-                    })
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                aiResponse.innerText =
-                    data.detail || "Something went wrong.";
-                return;
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await response.json();
+                aiResponse.innerText = data.response || data.detail || "No response received.";
+            } catch (error) {
+                aiResponse.innerText = "Unable to connect to PrepNexa AI Backend.";
             }
-
-            aiResponse.innerText = data.response;
-
-        } catch (error) {
-            console.error(error);
-            aiResponse.innerText =
-                "Unable to connect to PrepNexa AI.";
-        }
-    });
+        });
+    }
 }
 
 function useAiPrompt(type) {
     const aiPrompt = document.getElementById("aiPrompt");
-
     if (!aiPrompt) return;
 
-    if (type === "studyPlan") {
-        aiPrompt.value =
-            "Create a practical 7-day placement study plan for me covering DSA, CS Core, Aptitude and Verbal. Keep it beginner friendly and structured day-wise.";
-    }
-
-    if (type === "weakness") {
-        aiPrompt.value =
-            "Analyze common weaknesses of a placement student in DSA, CS Core, Aptitude and Verbal, and tell me what I should improve first.";
-    }
-
-    if (type === "interview") {
-        aiPrompt.value =
-            "Give me 10 important placement interview questions for DSA, OOPs, DBMS, OS and Computer Networks with short answers.";
-    }
-
+    if (type === "studyPlan") aiPrompt.value = "Create a practical 7-day placement study plan covering DSA, CS Core, Aptitude, and Verbal.";
+    if (type === "weakness") aiPrompt.value = "Analyze common placement weaknesses in DSA & CS Core and suggest improvements.";
+    if (type === "interview") aiPrompt.value = "Give me 10 essential technical interview questions with short concise answers.";
     aiPrompt.focus();
 }
 
+/* FLOATING AI CHATBOT WIDGET LOGIC */
+function toggleChatWidget() {
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox) {
+        chatBox.style.display = chatBox.style.display === "none" ? "flex" : "none";
     }
-);
+}
+
+function handleChatKeyPress(event) {
+    if (event.key === "Enter") sendWidgetMessage();
+}
+
+async function sendWidgetMessage() {
+    const input = document.getElementById("widgetPrompt");
+    const messagesContainer = document.getElementById("chatMessages");
+    if (!input || !messagesContainer) return;
+
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    // Render User Message
+    messagesContainer.innerHTML += `<div class="message user-message">${prompt}</div>`;
+    input.value = "";
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Loading Indicator
+    const loadingId = "bot-loading-" + Date.now();
+    messagesContainer.innerHTML += `<div id="${loadingId}" class="message bot-message">Thinking...</div>`;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/ai`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: prompt })
+        });
+        const data = await response.json();
+        
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) {
+            loadingElement.innerText = data.response || data.detail || "No response received.";
+        }
+    } catch (err) {
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) {
+            loadingElement.innerText = "Unable to connect to PrepNexa AI Backend.";
+        }
+    }
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+/* INIT */
+window.addEventListener("load", () => {
+    applyAppearance();
+    loadFlashcards();
+    renderMistakes();
+    renderRevisionQueue();
+    updateSkillRadar();
+    setupAiCoach();
+    
+    generateAndRenderAssessment("DSA", "dsaContainer");
+    generateAndRenderAssessment("Verbal", "verbalContainer");
+    generateAndRenderAssessment("Aptitude", "aptitudeContainer");
+    generateAndRenderAssessment("CS Core", "csCoreContainer");
+});

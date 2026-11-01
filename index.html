@@ -1826,5 +1826,36 @@
 
 <script src="script.js"></script>
 
+<!-- Floating Chatbot Widget -->
+<div id="chatWidget" class="chat-widget">
+  <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleChatWidget()">
+    💬 <span id="chatBadge" class="chat-badge">AI</span>
+  </button>
+  
+  <div id="chatBox" class="chat-box" style="display: none;">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <span class="chat-avatar">🤖</span>
+        <div>
+          <h4>PrepNexa AI Coach</h4>
+          <p class="chat-status"><span class="status-dot"></span> Online</p>
+        </div>
+      </div>
+      <button class="chat-close-btn" onclick="toggleChatWidget()">✕</button>
+    </div>
+    
+    <div id="chatMessages" class="chat-messages">
+      <div class="message bot-message">
+        👋 Hi! I'm your PrepNexa AI Coach. Ask me anything about DSA, OS, DBMS, Networks, or placement interviews!
+      </div>
+    </div>
+    
+    <div class="chat-input-container">
+      <input type="text" id="widgetPrompt" placeholder="Type your question..." onkeypress="handleChatKeyPress(event)">
+      <button id="sendWidgetBtn" onclick="sendWidgetMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
