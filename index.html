@@ -1,1861 +1,802 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>PrepNexa | Placement Readiness Platform</title>
 
-    <title>PrepNexa</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="description"
+        content="PrepNexa helps students prepare for placements with assessments, AI coaching and personalized study plans.">
 
     <link rel="stylesheet" href="style.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
 
-
-<!-- =====================================================
-     LOGIN / SIGNUP
-===================================================== -->
-
-<div id="authScreen">
-
-    <div class="auth-card">
-
-        <h1>PrepNexa</h1>
-
-        <p class="auth-subtitle">
-            Placement preparation, personalized for you.
-        </p>
-
-        <input
-            type="text"
-            id="authName"
-            placeholder="Your Name"
-        >
-
-        <select id="authRole">
-
-            <option value="">
-                Select Target Role
-            </option>
-
-            <option value="SDE">
-                Software Developer
-            </option>
-
-            <option value="AIML">
-                AI / ML Engineer
-            </option>
-
-            <option value="DATA">
-                Data Analyst
-            </option>
-
-        </select>
-
-        <input
-            type="email"
-            id="authEmail"
-            placeholder="Email Address"
-        >
-
-        <input
-            type="password"
-            id="authPassword"
-            placeholder="Password"
-        >
-
-        <button
-            class="auth-primary-btn"
-            onclick="signUpUser()"
-        >
-            Create Account
-        </button>
-
-        <button
-            class="auth-secondary-btn"
-            onclick="loginUser()"
-        >
-            Login
-        </button>
-
-        <p id="authMessage"></p>
-
-    </div>
-
-</div>
-
-
-<!-- =====================================================
-     APP
-===================================================== -->
-
-<div class="app">
-
-
-<!-- SIDEBAR -->
-
-<aside class="sidebar">
-
-    <div class="logo">
-        <div class="logo-icon">P</div>
-        <span class="logo-text">PrepNexa</span>
-    </div>
-
-
-    <div class="nav-title">
-        Overview
-    </div>
-
-
-    <div
-        class="nav-item active"
-        onclick="showPage('dashboard', this)"
-    >
-        🏠 <span class="nav-text">Dashboard</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('assessments', this)"
-    >
-        📝 <span class="nav-text">Assessments</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('adaptive', this)"
-    >
-        ⚡ <span class="nav-text">Adaptive Test</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('readiness', this)"
-    >
-        🎯 <span class="nav-text">Readiness</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('study', this)"
-    >
-        📅 <span class="nav-text">Study Plan</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('flashcards', this)"
-    >
-        🃏 <span class="nav-text">Flashcards</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('revision', this)"
-    >
-        🔁 <span class="nav-text">Revision Queue</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('mistakes', this)"
-    >
-        📕 <span class="nav-text">My Mistakes</span>
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('progress', this)"
-    >
-        📈 <span class="nav-text">Progress</span>
-    </div>
-
-
-    <div class="nav-title">
-        Tools
-    </div>
-
-
-    <div
-        class="nav-item"
-        onclick="showPage('diagnosis', this)"
-    >
-        🔍 <span class="nav-text">Diagnosis</span>
-    </div>
-
-    <div
-    class="nav-item"
-    onclick="showPage('aiCoach', this)"
->
-    🤖 <span class="nav-text">AI Coach</span>
-    </div>
-
-    <div
-        class="nav-item"
-        onclick="showPage('preferences', this)"
-    >
-        🎨 <span class="nav-text">Preferences</span>
-    </div>
-
-</aside>
-
-
-<!-- =====================================================
-     MAIN
-===================================================== -->
-
-<main class="main">
-
-
-<header class="topbar">
-
-    <div class="topbar-title">
-
-        <h3>
-            Placement Preparation
-        </h3>
-
-        <p>
-            Assess → Diagnose → Revise → Improve
-        </p>
-
-    </div>
-
-
-    <div class="topbar-user">
-
-        <div
-            class="role-badge"
-            id="topRole"
-        >
-            Select Role
-        </div>
-
-
-        <button
-            class="logout-btn"
-            onclick="logoutUser()"
-        >
-            Logout
-        </button>
-
-
-        <div
-            class="avatar"
-            id="avatarText"
-            onclick="openProfileSettings()"
-        >
-            U
-        </div>
-
-    </div>
-
-</header>
-
-
-<div class="content">
-
-
-<!-- =====================================================
-     DASHBOARD
-===================================================== -->
-
-<section
-    id="dashboard"
-    class="page active"
->
-
-
-<div class="hero">
-
-    <div class="hero-label">
-        YOUR PLACEMENT COMMAND CENTER
-    </div>
-
-    <h1 id="welcomeTitle">
-        Welcome to PrepNexa
-    </h1>
-
-    <p>
-        Understand your weaknesses, revise smarter
-        and track your placement preparation.
-    </p>
-
-
-    <div class="hero-readiness">
-
-        <div
-            class="hero-score"
-            id="heroScore"
-        >
-            0%
-        </div>
-
-        <div class="hero-progress">
-
-            <div
-                class="hero-progress-bar"
-                id="heroProgressBar"
-            ></div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<div class="stats-grid">
-
-
-    <div class="stat-card stat-readiness">
-
-        <div class="stat-label">
-            Overall Readiness
-        </div>
-
-        <div
-            class="stat-number"
-            id="summaryReadiness"
-        >
-            0%
-        </div>
-
-    </div>
-
-
-    <div class="stat-card stat-dsa">
-
-        <div class="stat-label">
-            DSA
-        </div>
-
-        <div
-            class="stat-number"
-            id="dashboardDSA"
-        >
-            0%
-        </div>
-
-    </div>
-
-
-    <div class="stat-card stat-fundamentals">
-
-        <div class="stat-label">
-            CS Core
-        </div>
-
-        <div
-            class="stat-number"
-            id="dashboardFundamentals"
-        >
-            0%
-        </div>
-
-    </div>
-
-
-    <div class="stat-card stat-verbal">
-
-        <div class="stat-label">
-            Verbal
-        </div>
-
-        <div
-            class="stat-number"
-            id="dashboardVerbal"
-        >
-            0%
-        </div>
-
-    </div>
-
-
-    <div class="stat-card stat-aptitude">
-
-        <div class="stat-label">
-            Aptitude
-        </div>
-
-        <div
-            class="stat-number"
-            id="dashboardAptitude"
-        >
-            0%
-        </div>
-
-    </div>
-
-</div>
-
-
-<div class="dashboard-grid">
-
-
-<div class="card">
-
-    <div class="card-title">
-        Skill Analysis
-    </div>
-
-
-    <div class="skill-row">
-
-        <div class="skill-info">
-            <span>DSA</span>
-            <span id="dsaSkillText">0%</span>
-        </div>
-
-        <div class="skill-track">
-
-            <div
-                class="skill-fill skill-dsa"
-                id="dsaSkillBar"
-            ></div>
+    <!-- ===================================== -->
+    <!-- AUTHENTICATION -->
+    <!-- ===================================== -->
+
+    <div id="authScreen" class="auth-screen">
+
+        <div class="auth-card">
+
+            <div class="brand">
+                <span class="brand-icon">✦</span>
+                <h1>PrepNexa</h1>
+            </div>
+
+            <p class="auth-subtitle">
+                Your journey from learning to placement.
+            </p>
+
+            <div class="auth-tabs">
+                <button id="loginTab" class="auth-tab active"
+                    onclick="showAuthForm('login')">
+                    Login
+                </button>
+
+                <button id="signupTab" class="auth-tab"
+                    onclick="showAuthForm('signup')">
+                    Create Account
+                </button>
+            </div>
+
+            <form id="authForm">
+
+                <div id="signupFields">
+
+                    <label for="authName">Full Name</label>
+                    <input
+                        type="text"
+                        id="authName"
+                        placeholder="Enter your name"
+                    >
+
+                    <label for="authRole">Career Goal</label>
+                    <select id="authRole">
+                        <option value="SDE">Software Development</option>
+                        <option value="AIML">AI / ML Engineer</option>
+                        <option value="DATA">Data Analyst</option>
+                    </select>
+
+                </div>
+
+                <label for="authEmail">Email Address</label>
+                <input
+                    type="email"
+                    id="authEmail"
+                    placeholder="Enter your email"
+                    required
+                >
+
+                <label for="authPassword">Password</label>
+                <input
+                    type="password"
+                    id="authPassword"
+                    placeholder="Enter password"
+                    required
+                    minlength="6"
+                >
+
+                <button
+                    type="submit"
+                    id="authSubmitBtn"
+                    class="primary-btn auth-submit">
+                    Login
+                </button>
+
+            </form>
+
+            <p id="authMessage" class="auth-message"></p>
 
         </div>
 
     </div>
 
 
-    <div class="skill-row">
+    <!-- ===================================== -->
+    <!-- MAIN APPLICATION -->
+    <!-- ===================================== -->
 
-        <div class="skill-info">
-            <span>CS Core</span>
-            <span id="fundamentalsSkillText">0%</span>
-        </div>
+    <div id="app" class="app-container" style="display:none;">
 
-        <div class="skill-track">
+        <!-- SIDEBAR -->
 
-            <div
-                class="skill-fill skill-fundamentals"
-                id="fundamentalsSkillBar"
-            ></div>
+        <aside class="sidebar">
 
-        </div>
+            <div class="sidebar-brand">
+                <span class="brand-icon">✦</span>
+                <span>PrepNexa</span>
+            </div>
 
-    </div>
+            <div class="sidebar-menu">
 
+                <p class="menu-heading">WORKSPACE</p>
 
-    <div class="skill-row">
+                <div class="nav-item active"
+                    onclick="showPage('dashboard', this)">
+                    🏠 <span class="nav-text">Dashboard</span>
+                </div>
 
-        <div class="skill-info">
-            <span>Verbal</span>
-            <span id="verbalSkillText">0%</span>
-        </div>
+                <div class="nav-item"
+                    onclick="showPage('assessments', this)">
+                    📝 <span class="nav-text">Assessments</span>
+                </div>
 
-        <div class="skill-track">
+                <div class="nav-item"
+                    onclick="showPage('readiness', this)">
+                    🎯 <span class="nav-text">Readiness Score</span>
+                </div>
 
-            <div
-                class="skill-fill skill-verbal"
-                id="verbalSkillBar"
-            ></div>
+                <div class="nav-item"
+                    onclick="showPage('studyPlan', this)">
+                    📚 <span class="nav-text">Study Plan</span>
+                </div>
 
-        </div>
+                <p class="menu-heading">LEARNING</p>
 
-    </div>
+                <div class="nav-item"
+                    onclick="showPage('flashcards', this)">
+                    🗂️ <span class="nav-text">Flashcards</span>
+                </div>
 
+                <div class="nav-item"
+                    onclick="showPage('revision', this)">
+                    🔄 <span class="nav-text">Revision Queue</span>
+                </div>
 
-    <div class="skill-row">
+                <div class="nav-item"
+                    onclick="showPage('mistakes', this)">
+                    📓 <span class="nav-text">Mistake Notebook</span>
+                </div>
 
-        <div class="skill-info">
-            <span>Aptitude</span>
-            <span id="aptitudeSkillText">0%</span>
-        </div>
+                <div class="nav-item"
+                    onclick="showPage('diagnosis', this)">
+                    🔍 <span class="nav-text">Diagnosis</span>
+                </div>
 
-        <div class="skill-track">
+                <p class="menu-heading">AI & ANALYTICS</p>
 
-            <div
-                class="skill-fill skill-aptitude"
-                id="aptitudeSkillBar"
-            ></div>
+                <div class="nav-item"
+                    onclick="showPage('aiCoach', this)">
+                    🤖 <span class="nav-text">AI Coach</span>
+                </div>
 
-        </div>
+                <div class="nav-item"
+                    onclick="showPage('progress', this)">
+                    📊 <span class="nav-text">Progress Analytics</span>
+                </div>
 
-    </div>
+                <p class="menu-heading">ACCOUNT</p>
 
-</div>
+                <div class="nav-item"
+                    onclick="showPage('profile', this)">
+                    👤 <span class="nav-text">Profile Settings</span>
+                </div>
 
-
-<div class="card">
-
-    <div class="card-title">
-        🎯 Smart Focus
-    </div>
-
-    <div class="result-box">
-
-        <strong id="smartFocus">
-            Complete your assessments first.
-        </strong>
-
-    </div>
-
-    <br>
-
-    Strongest Area:
-    <strong id="summaryStrongest">
-        --
-    </strong>
-
-    <br><br>
-
-    Weakest Area:
-    <strong id="summaryWeakest">
-        --
-    </strong>
-
-</div>
-
-</div>
-
-
-<div class="two-grid">
-
-
-<div class="card">
-
-    <div class="card-title">
-        🕸 Skill Radar
-    </div>
-
-    <canvas id="skillRadarChart"></canvas>
-
-</div>
-
-
-<div class="card">
-
-    <div class="card-title">
-        👤 Student Profile
-    </div>
-
-    <br>
-
-    <label class="form-label">
-        Name
-    </label>
-
-    <input
-        type="text"
-        id="studentName"
-    >
-
-    <label class="form-label">
-        Target Role
-    </label>
-
-    <select id="profileRole">
-
-        <option value="">
-            Select Role
-        </option>
-
-        <option value="SDE">
-            Software Developer
-        </option>
-
-        <option value="AIML">
-            AI / ML Engineer
-        </option>
-
-        <option value="DATA">
-            Data Analyst
-        </option>
-
-    </select>
-
-    <button
-        class="btn-primary"
-        onclick="saveProfile()"
-    >
-        Save Profile
-    </button>
-
-    <p id="profileMessage"></p>
-
-</div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     ASSESSMENTS
-===================================================== -->
-
-<section
-    id="assessments"
-    class="page"
->
-
-
-<div class="card">
-
-    <div class="card-title">
-        📝 Placement Assessments
-    </div>
-
-    <div class="card-subtitle">
-        Wrong answers are automatically saved
-        in your Mistake Notebook.
-    </div>
-
-</div>
-
-
-<div class="assessment-grid">
-
-
-<!-- DSA -->
-
-<div class="assessment-card">
-
-    <h3>💻 DSA</h3>
-
-
-    <div class="question">
-
-        <p>
-            1. Time complexity of Binary Search?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="dsa1" value="A">
-            O(n)
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa1" value="B">
-            O(log n)
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa1" value="C">
-            O(n²)
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            2. Stack follows?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="dsa2" value="A">
-            FIFO
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa2" value="B">
-            LIFO
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa2" value="C">
-            Random
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            3. Best search for sorted array?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="dsa3" value="A">
-            Linear Search
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa3" value="B">
-            Binary Search
-        </label>
-
-        <label class="option">
-            <input type="radio" name="dsa3" value="C">
-            Bubble Sort
-        </label>
-
-    </div>
-
-
-    <button
-        class="btn-primary"
-        onclick="submitDSATest()"
-    >
-        Submit DSA
-    </button>
-
-    <div
-        class="result-box"
-        id="dsaResult"
-    >
-        Score will appear here.
-    </div>
-
-</div>
-
-
-<!-- VERBAL -->
-
-<div class="assessment-card">
-
-    <h3>🗣️ Verbal</h3>
-
-
-    <div class="question">
-
-        <p>
-            1. Correct sentence?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="verbal1" value="A">
-            She go to college every day.
-        </label>
-
-        <label class="option">
-            <input type="radio" name="verbal1" value="B">
-            She goes to college every day.
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            2. Correct past tense?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="verbal2" value="A">
-            I go there yesterday.
-        </label>
-
-        <label class="option">
-            <input type="radio" name="verbal2" value="B">
-            I went there yesterday.
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            3. Correct sentence?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="verbal3" value="A">
-            Their going to the market.
-        </label>
-
-        <label class="option">
-            <input type="radio" name="verbal3" value="B">
-            There going to the market.
-        </label>
-
-        <label class="option">
-            <input type="radio" name="verbal3" value="C">
-            They're going to the market.
-        </label>
-
-    </div>
-
-
-    <button
-        class="btn-primary"
-        onclick="submitVerbalTest()"
-    >
-        Submit Verbal
-    </button>
-
-    <div
-        class="result-box"
-        id="verbalResult"
-    >
-        Score will appear here.
-    </div>
-
-</div>
-
-
-<!-- APTITUDE -->
-
-<div class="assessment-card">
-
-    <h3>🧠 Aptitude</h3>
-
-
-    <div class="question">
-
-        <p>
-            1. 20% of a number is 40. Number?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="aptitude1" value="A">
-            100
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude1" value="B">
-            150
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude1" value="C">
-            200
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            2. 60 km/h for 3 hours?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="aptitude2" value="A">
-            120 km
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude2" value="B">
-            180 km
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude2" value="C">
-            240 km
-        </label>
-
-    </div>
-
-
-    <div class="question">
-
-        <p>
-            3. 2, 4, 8, 16, ?
-        </p>
-
-        <label class="option">
-            <input type="radio" name="aptitude3" value="A">
-            20
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude3" value="B">
-            24
-        </label>
-
-        <label class="option">
-            <input type="radio" name="aptitude3" value="C">
-            32
-        </label>
-
-    </div>
-
-
-    <button
-        class="btn-primary"
-        onclick="submitAptitudeTest()"
-    >
-        Submit Aptitude
-    </button>
-
-    <div
-        class="result-box"
-        id="aptitudeResult"
-    >
-        Score will appear here.
-    </div>
-
-</div>
-
-
-<!-- CS CORE -->
-
-<div class="assessment-card full-card">
-
-    <h3>🧩 CS Core</h3>
-
-    <p>
-        Complete OOPs, DBMS, Operating System
-        and Computer Networks.
-    </p>
-
-
-    <div class="cs-buttons">
-
-        <button
-            onclick="openCSCorePart('oopsPart')"
-        >
-            OOPs
-        </button>
-
-        <button
-            onclick="openCSCorePart('dbmsPart')"
-        >
-            DBMS
-        </button>
-
-        <button
-            onclick="openCSCorePart('osPart')"
-        >
-            Operating System
-        </button>
-
-        <button
-            onclick="openCSCorePart('cnPart')"
-        >
-            Computer Networks
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- OOPS -->
-
-<div
-    id="oopsPart"
-    class="assessment-card full-card cs-core-part"
->
-
-    <h3>OOPs</h3>
-
-    <div class="question">
-
-        <p>1. Data hiding concept?</p>
-
-        <label class="option">
-            <input type="radio" name="oops1" value="A">
-            Encapsulation
-        </label>
-
-        <label class="option">
-            <input type="radio" name="oops1" value="B">
-            Sorting
-        </label>
-
-    </div>
-
-    <div class="question">
-
-        <p>2. Object is?</p>
-
-        <label class="option">
-            <input type="radio" name="oops2" value="A">
-            Instance of class
-        </label>
-
-        <label class="option">
-            <input type="radio" name="oops2" value="B">
-            Database
-        </label>
-
-    </div>
-
-    <div class="question">
-
-        <p>3. One interface, multiple forms?</p>
-
-        <label class="option">
-            <input type="radio" name="oops3" value="A">
-            Polymorphism
-        </label>
-
-        <label class="option">
-            <input type="radio" name="oops3" value="B">
-            Routing
-        </label>
-
-    </div>
-
-    <div class="question">
-
-        <p>4. Parent-child property sharing?</p>
-
-        <label class="option">
-            <input type="radio" name="oops4" value="A">
-            Inheritance
-        </label>
-
-        <label class="option">
-            <input type="radio" name="oops4" value="B">
-            Indexing
-        </label>
-
-    </div>
-
-    <button
-        class="btn-primary"
-        onclick="submitCSCoreTest(
-            'OOPs',
-            ['oops1','oops2','oops3','oops4'],
-            ['A','A','A','A']
-        )"
-    >
-        Submit OOPs
-    </button>
-
-    <div
-        class="result-box"
-        id="OOPsResult"
-    ></div>
-
-</div>
-
-
-<!-- DBMS -->
-
-<div
-    id="dbmsPart"
-    class="assessment-card full-card cs-core-part"
->
-
-    <h3>DBMS</h3>
-
-    <div class="question">
-        <p>1. Unique row identifier?</p>
-        <label class="option">
-            <input type="radio" name="dbms1" value="A">
-            Primary Key
-        </label>
-        <label class="option">
-            <input type="radio" name="dbms1" value="B">
-            Foreign Key
-        </label>
-    </div>
-
-    <div class="question">
-        <p>2. All-or-nothing property?</p>
-        <label class="option">
-            <input type="radio" name="dbms2" value="A">
-            Atomicity
-        </label>
-        <label class="option">
-            <input type="radio" name="dbms2" value="B">
-            Isolation
-        </label>
-    </div>
-
-    <div class="question">
-        <p>3. Normalization reduces?</p>
-        <label class="option">
-            <input type="radio" name="dbms3" value="A">
-            Redundancy
-        </label>
-        <label class="option">
-            <input type="radio" name="dbms3" value="B">
-            Security
-        </label>
-    </div>
-
-    <div class="question">
-        <p>4. Retrieve data command?</p>
-        <label class="option">
-            <input type="radio" name="dbms4" value="A">
-            SELECT
-        </label>
-        <label class="option">
-            <input type="radio" name="dbms4" value="B">
-            DROP
-        </label>
-    </div>
-
-    <button
-        class="btn-primary"
-        onclick="submitCSCoreTest(
-            'DBMS',
-            ['dbms1','dbms2','dbms3','dbms4'],
-            ['A','A','A','A']
-        )"
-    >
-        Submit DBMS
-    </button>
-
-    <div
-        class="result-box"
-        id="DBMSResult"
-    ></div>
-
-</div>
-
-
-<!-- OS -->
-
-<div
-    id="osPart"
-    class="assessment-card full-card cs-core-part"
->
-
-    <h3>Operating System</h3>
-
-    <div class="question">
-        <p>1. Scheduling using time quantum?</p>
-        <label class="option">
-            <input type="radio" name="os1" value="A">
-            FCFS
-        </label>
-        <label class="option">
-            <input type="radio" name="os1" value="B">
-            Round Robin
-        </label>
-    </div>
-
-    <div class="question">
-        <p>2. Deadlock condition?</p>
-        <label class="option">
-            <input type="radio" name="os2" value="A">
-            Circular Wait
-        </label>
-        <label class="option">
-            <input type="radio" name="os2" value="B">
-            Binary Search
-        </label>
-    </div>
-
-    <div class="question">
-        <p>3. Process is?</p>
-        <label class="option">
-            <input type="radio" name="os3" value="A">
-            Program in execution
-        </label>
-        <label class="option">
-            <input type="radio" name="os3" value="B">
-            Database key
-        </label>
-    </div>
-
-    <div class="question">
-        <p>4. Virtual memory uses?</p>
-        <label class="option">
-            <input type="radio" name="os4" value="A">
-            Disk as extension of RAM
-        </label>
-        <label class="option">
-            <input type="radio" name="os4" value="B">
-            DNS
-        </label>
-    </div>
-
-    <button
-        class="btn-primary"
-        onclick="submitCSCoreTest(
-            'Operating System',
-            ['os1','os2','os3','os4'],
-            ['B','A','A','A']
-        )"
-    >
-        Submit OS
-    </button>
-
-    <div
-        class="result-box"
-        id="OperatingSystemResult"
-    ></div>
-
-</div>
-
-
-<!-- CN -->
-
-<div
-    id="cnPart"
-    class="assessment-card full-card cs-core-part"
->
-
-    <h3>Computer Networks</h3>
-
-    <div class="question">
-        <p>1. Connection-oriented protocol?</p>
-        <label class="option">
-            <input type="radio" name="cn1" value="A">
-            TCP
-        </label>
-        <label class="option">
-            <input type="radio" name="cn1" value="B">
-            UDP
-        </label>
-    </div>
-
-    <div class="question">
-        <p>2. DNS maps?</p>
-        <label class="option">
-            <input type="radio" name="cn2" value="A">
-            Domain names to IP
-        </label>
-        <label class="option">
-            <input type="radio" name="cn2" value="B">
-            Arrays to stacks
-        </label>
-    </div>
-
-    <div class="question">
-        <p>3. OSI layers?</p>
-        <label class="option">
-            <input type="radio" name="cn3" value="A">
-            7
-        </label>
-        <label class="option">
-            <input type="radio" name="cn3" value="B">
-            4
-        </label>
-    </div>
-
-    <div class="question">
-        <p>4. HTTP is mainly used for?</p>
-        <label class="option">
-            <input type="radio" name="cn4" value="A">
-            Web communication
-        </label>
-        <label class="option">
-            <input type="radio" name="cn4" value="B">
-            CPU scheduling
-        </label>
-    </div>
-
-    <button
-        class="btn-primary"
-        onclick="submitCSCoreTest(
-            'Computer Networks',
-            ['cn1','cn2','cn3','cn4'],
-            ['A','A','A','A']
-        )"
-    >
-        Submit CN
-    </button>
-
-    <div
-        class="result-box"
-        id="ComputerNetworksResult"
-    ></div>
-
-</div>
-
-
-<div class="assessment-card full-card">
-
-    <h3>
-        CS Core Overall
-    </h3>
-
-    <div
-        class="result-box"
-        id="fundamentalsResult"
-    >
-        Complete all four CS Core tests.
-    </div>
-
-</div>
-
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     ADAPTIVE
-===================================================== -->
-
-<section
-    id="adaptive"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        ⚡ Adaptive Test
-    </div>
-
-    <select id="adaptiveSubject">
-
-        <option value="DSA">DSA</option>
-        <option value="CS_CORE">CS Core</option>
-        <option value="VERBAL">Verbal</option>
-        <option value="APTITUDE">Aptitude</option>
-
-    </select>
-
-    <button
-        class="btn-primary"
-        onclick="startAdaptiveAssessment()"
-    >
-        Start Test
-    </button>
-
-</div>
-
-
-<div
-    id="adaptiveBox"
-    class="card"
-    style="display:none"
->
-
-    <p id="adaptiveCounter"></p>
-
-    <h2 id="adaptiveQuestion"></h2>
-
-    <div id="adaptiveOptions"></div>
-
-</div>
-
-
-<div
-    id="adaptiveResultCard"
-    class="card"
-    style="display:none"
->
-
-    <h2 id="adaptiveFinalScore"></h2>
-
-    <p id="adaptiveFinalMessage"></p>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     READINESS
-===================================================== -->
-
-<section
-    id="readiness"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        🎯 Placement Readiness
-    </div>
-
-    <label class="form-label">
-        Target Role
-    </label>
-
-    <select id="targetRole">
-
-        <option value="SDE">
-            Software Developer
-        </option>
-
-        <option value="AIML">
-            AI / ML Engineer
-        </option>
-
-        <option value="DATA">
-            Data Analyst
-        </option>
-
-    </select>
-
-
-    <input
-        type="number"
-        id="dsaScore"
-        placeholder="DSA Score"
-    >
-
-    <input
-        type="number"
-        id="fundamentalsScore"
-        placeholder="CS Core Score"
-    >
-
-    <input
-        type="number"
-        id="verbalScore"
-        placeholder="Verbal Score"
-    >
-
-    <input
-        type="number"
-        id="aptitudeScore"
-        placeholder="Aptitude Score"
-    >
-
-    <button
-        class="btn-primary"
-        onclick="calculateReadiness()"
-    >
-        Calculate
-    </button>
-
-
-    <div class="result-box">
-
-        <h2 id="readinessResult"></h2>
-
-        <p id="strongArea"></p>
-
-        <p id="weakArea"></p>
-
-        <p id="readinessRecommendation"></p>
-
-    </div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     STUDY PLAN
-===================================================== -->
-
-<section
-    id="study"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        📅 Study Plan
-    </div>
-
-    <div id="studyPlan">
-        Complete readiness assessment first.
-    </div>
-
-    <div class="progress-track">
-
-        <div
-            class="progress-bar"
-            id="studyProgressBar"
-        ></div>
-
-    </div>
-
-    <p id="studyProgressText">
-        0% completed
-    </p>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     FLASHCARDS
-===================================================== -->
-
-<section
-    id="flashcards"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        🃏 Smart Flashcards
-    </div>
-
-    <select
-        id="flashcardSubject"
-        onchange="loadFlashcards()"
-    >
-        <option value="DSA">DSA</option>
-        <option value="CS_CORE">CS Core</option>
-        <option value="VERBAL">Verbal</option>
-        <option value="APTITUDE">Aptitude</option>
-    </select>
-
-
-    <p id="flashcardNumber"></p>
-
-
-    <div
-        class="flashcard"
-        onclick="flipFlashcard()"
-    >
-
-        <div
-            id="flashcardInner"
-            class="flashcard-inner"
-        >
-
-            <div class="flashcard-front">
-
-                <h2 id="flashcardQuestion"></h2>
+                <div class="nav-item"
+                    onclick="showPage('preferences', this)">
+                    ⚙️ <span class="nav-text">Preferences</span>
+                </div>
 
             </div>
 
-            <div class="flashcard-back">
-
-                <h2 id="flashcardAnswer"></h2>
-
+            <div class="sidebar-bottom">
+                <button class="logout-btn" onclick="logoutUser()">
+                    ↪ Logout
+                </button>
             </div>
 
-        </div>
+        </aside>
+
+
+        <!-- ===================================== -->
+        <!-- MAIN CONTENT -->
+        <!-- ===================================== -->
+
+        <main class="main-content">
+
+            <!-- TOPBAR -->
+
+            <header class="topbar">
+
+                <div>
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <p>Welcome to your placement journey.</p>
+                </div>
+
+                <div class="topbar-right">
+
+                    <button class="theme-toggle"
+                        onclick="toggleTheme()">
+                        🌙
+                    </button>
+
+                    <div class="user-info">
+                        <img
+                            id="topProfilePhoto"
+                            src="https://placehold.co/45x45"
+                            alt="Profile"
+                        >
+                        <span id="topUserName">Student</span>
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- ================================= -->
+            <!-- DASHBOARD -->
+            <!-- ================================= -->
+
+            <section id="dashboard" class="page active">
+
+                <div class="welcome-section">
+                    <h1>Hello, <span id="dashboardName">Student</span> 👋</h1>
+                    <p>Let's make today count towards your dream placement.</p>
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <p>Overall Readiness</p>
+                        <h2 id="dashboardReadiness">0%</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Assessments Completed</p>
+                        <h2 id="dashboardAssessments">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Tasks Completed</p>
+                        <h2 id="dashboardTasks">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Saved Mistakes</p>
+                        <h2 id="dashboardMistakes">0</h2>
+                    </div>
+
+                </div>
+
+                <div class="dashboard-grid">
+
+                    <div class="content-card">
+                        <h3>Readiness Overview</h3>
+                        <canvas id="readinessChart"></canvas>
+                    </div>
+
+                    <div class="content-card">
+                        <h3>Quick Actions</h3>
+
+                        <button class="action-btn"
+                            onclick="showPage('assessments')">
+                            Start Assessment →
+                        </button>
+
+                        <button class="action-btn"
+                            onclick="showPage('aiCoach')">
+                            Ask AI Coach →
+                        </button>
+
+                        <button class="action-btn"
+                            onclick="showPage('studyPlan')">
+                            View Study Plan →
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="content-card">
+                    <h3>Recent Activity</h3>
+                    <div id="recentActivity">
+                        No recent activity yet.
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- ASSESSMENTS -->
+            <!-- ================================= -->
+
+            <section id="assessments" class="page">
+
+                <h2>Skill Assessments</h2>
+
+                <p>Evaluate your skills and identify improvement areas.</p>
+
+                <div class="assessment-grid">
+
+                    <div class="assessment-card">
+                        <h3>💻 DSA</h3>
+                        <p>Data Structures and Algorithms</p>
+                        <button onclick="startAssessment('DSA')">
+                            Start Test
+                        </button>
+                    </div>
+
+                    <div class="assessment-card">
+                        <h3>🗣️ Verbal Ability</h3>
+                        <p>English and communication skills</p>
+                        <button onclick="startAssessment('Verbal')">
+                            Start Test
+                        </button>
+                    </div>
+
+                    <div class="assessment-card">
+                        <h3>🧠 Aptitude</h3>
+                        <p>Logical and quantitative reasoning</p>
+                        <button onclick="startAssessment('Aptitude')">
+                            Start Test
+                        </button>
+                    </div>
+
+                    <div class="assessment-card">
+                        <h3>📘 CS Core</h3>
+                        <p>Core computer science concepts</p>
+                        <button onclick="showPage('csCore')">
+                            Explore Subjects
+                        </button>
+                    </div>
+
+                </div>
+
+                <div id="csCore" class="content-card">
+
+                    <h3>Computer Science Core Subjects</h3>
+
+                    <div class="subject-grid">
+
+                        <button onclick="startAssessment('OOPs')">
+                            OOPs
+                        </button>
+
+                        <button onclick="startAssessment('DBMS')">
+                            DBMS
+                        </button>
+
+                        <button onclick="startAssessment('OS')">
+                            Operating Systems
+                        </button>
+
+                        <button onclick="startAssessment('CN')">
+                            Computer Networks
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div id="assessmentContainer"
+                    class="assessment-container">
+
+                </div>
+
+                <div id="assessmentResult"
+                    class="assessment-result">
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- READINESS -->
+            <!-- ================================= -->
+
+            <section id="readiness" class="page">
+
+                <h2>Placement Readiness</h2>
+
+                <p>Understand your preparation level for different roles.</p>
+
+                <div class="content-card">
+
+                    <label for="careerRole">Choose Career Goal</label>
+
+                    <select id="careerRole">
+                        <option value="SDE">Software Development Engineer</option>
+                        <option value="AIML">AI / ML Engineer</option>
+                        <option value="DATA">Data Analyst</option>
+                    </select>
+
+                    <button onclick="calculateReadiness()">
+                        Calculate Readiness
+                    </button>
+
+                    <h2 id="readinessScore">0%</h2>
+
+                    <div id="readinessBreakdown"></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- STUDY PLAN -->
+            <!-- ================================= -->
+
+            <section id="studyPlan" class="page">
+
+                <h2>Personalized Study Plan</h2>
+
+                <p>Track your preparation tasks and daily goals.</p>
+
+                <div class="content-card">
+
+                    <div class="study-progress">
+                        <h3>Study Progress</h3>
+                        <h2 id="studyProgressPercent">0%</h2>
+                        <div id="studyProgressBar"
+                            class="progress-bar">
+                            <div id="studyProgressFill"></div>
+                        </div>
+                    </div>
+
+                    <div id="studyTasks">
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- FLASHCARDS -->
+            <!-- ================================= -->
+
+            <section id="flashcards" class="page">
+
+                <h2>Flashcards</h2>
+
+                <p>Practice important placement concepts.</p>
+
+                <div class="content-card">
+
+                    <div id="flashcardArea">
+                        <h3 id="flashcardQuestion">
+                            Your flashcards will appear here.
+                        </h3>
+
+                        <p id="flashcardAnswer"></p>
+                    </div>
+
+                    <button onclick="showFlashcardAnswer()">
+                        Reveal Answer
+                    </button>
+
+                    <button onclick="nextFlashcard()">
+                        Next Card →
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- REVISION QUEUE -->
+            <!-- ================================= -->
+
+            <section id="revision" class="page">
+
+                <h2>Revision Queue</h2>
+
+                <p>Revisit topics that need more practice.</p>
+
+                <div class="content-card">
+                    <div id="revisionQueue">
+                        No revision tasks yet.
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- MISTAKE NOTEBOOK -->
+            <!-- ================================= -->
+
+            <section id="mistakes" class="page">
+
+                <h2>Mistake Notebook</h2>
+
+                <p>Save your mistakes and learn from them.</p>
+
+                <div class="content-card">
+
+                    <label for="mistakeSubject">Subject</label>
+
+                    <select id="mistakeSubject">
+                        <option value="DSA">DSA</option>
+                        <option value="OOPs">OOPs</option>
+                        <option value="DBMS">DBMS</option>
+                        <option value="OS">Operating Systems</option>
+                        <option value="CN">Computer Networks</option>
+                        <option value="Aptitude">Aptitude</option>
+                    </select>
+
+                    <label for="mistakeTopic">Topic</label>
+
+                    <input
+                        id="mistakeTopic"
+                        type="text"
+                        placeholder="Enter topic"
+                    >
+
+                    <label for="mistakeQuestion">What mistake did you make?</label>
+
+                    <textarea
+                        id="mistakeQuestion"
+                        placeholder="Describe your mistake..."
+                    ></textarea>
+
+                    <label for="mistakeCorrectAnswer">Correct approach</label>
+
+                    <textarea
+                        id="mistakeCorrectAnswer"
+                        placeholder="Write the correct approach..."
+                    ></textarea>
+
+                    <button onclick="addMistake()">
+                        Save Mistake
+                    </button>
+
+                </div>
+
+                <div class="content-card">
+                    <h3>Saved Mistakes</h3>
+                    <div id="mistakeList"></div>
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- DIAGNOSIS -->
+            <!-- ================================= -->
+
+            <section id="diagnosis" class="page">
+
+                <h2>Mistake Diagnosis</h2>
+
+                <p>Identify the possible reason behind your coding mistake.</p>
+
+                <div class="content-card">
+
+                    <textarea
+                        id="diagnosisInput"
+                        placeholder="Example: I am getting duplicate elements in my array..."
+                    ></textarea>
+
+                    <button onclick="diagnoseMistake()">
+                        Diagnose Mistake
+                    </button>
+
+                    <div id="diagnosisResult"></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- PREPNEXA AI COACH CHATBOT -->
+            <!-- ================================= -->
+
+            <section id="aiCoach" class="page ai-coach-section">
+
+                <div class="ai-header">
+
+                    <div>
+                        <h2>🤖 PrepNexa AI Coach</h2>
+
+                        <p>
+                            Your personal AI placement preparation assistant.
+                        </p>
+                    </div>
+
+                    <span class="ai-status">
+                        ● AI Coach
+                    </span>
+
+                </div>
+
+
+                <!-- CHAT HISTORY -->
+
+                <div id="chatMessages" class="chat-messages">
+
+                    <div class="chat-message assistant-message">
+                        <strong>PrepNexa AI</strong>
+
+                        <p>
+                            Hey! Welcome to PrepNexa AI Coach.
+                            Ask me anything about DSA, Java, Python,
+                            DBMS, OS, CN, Aptitude or interviews.
+                            Let's prepare together! 🚀
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <!-- CHAT INPUT -->
+
+                <div class="chat-input-area">
+
+                    <textarea
+                        id="aiPrompt"
+                        placeholder="Ask your question here..."
+                        rows="3"
+                    ></textarea>
+
+                    <button
+                        id="askAiBtn"
+                        type="button">
+                        Send ➤
+                    </button>
+
+                </div>
+
+                <p id="aiResponse" class="ai-response"
+                    aria-live="polite">
+                </p>
+
+                <p class="ai-disclaimer">
+                    AI-generated answers may contain mistakes.
+                    Verify important technical information.
+                </p>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- PROGRESS ANALYTICS -->
+            <!-- ================================= -->
+
+            <section id="progress" class="page">
+
+                <h2>Progress Analytics</h2>
+
+                <p>Track your learning and performance over time.</p>
+
+                <div class="content-card">
+                    <h3>Assessment Performance</h3>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+
+                <div class="content-card">
+                    <h3>Learning Progress</h3>
+                    <canvas id="learningChart"></canvas>
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- PROFILE -->
+            <!-- ================================= -->
+
+            <section id="profile" class="page">
+
+                <h2>Profile Settings</h2>
+
+                <div class="content-card">
+
+                    <div class="profile-photo-area">
+
+                        <img
+                            id="profilePhoto"
+                            src="https://placehold.co/120x120"
+                            alt="Profile photo"
+                        >
+
+                        <input
+                            type="file"
+                            id="profilePhotoInput"
+                            accept="image/*"
+                        >
+
+                    </div>
+
+                    <label for="profileName">Full Name</label>
+
+                    <input
+                        type="text"
+                        id="profileName"
+                        placeholder="Your name"
+                    >
+
+                    <label for="profileEmail">Email</label>
+
+                    <input
+                        type="email"
+                        id="profileEmail"
+                        disabled
+                    >
+
+                    <label for="profileRole">Career Goal</label>
+
+                    <select id="profileRole">
+                        <option value="SDE">SDE</option>
+                        <option value="AIML">AI / ML</option>
+                        <option value="DATA">Data Analyst</option>
+                    </select>
+
+                    <button onclick="saveProfile()">
+                        Save Profile
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================= -->
+            <!-- PREFERENCES -->
+            <!-- ================================= -->
+
+            <section id="preferences" class="page">
+
+                <h2>Preferences</h2>
+
+                <div class="content-card">
+
+                    <h3>Appearance</h3>
+
+                    <label for="themeSelect">
+                        Select Theme
+                    </label>
+
+                    <select id="themeSelect"
+                        onchange="changeTheme(this.value)">
+
+                        <option value="dark">Dark Theme</option>
+                        <option value="light">Light Theme</option>
+
+                    </select>
+
+                </div>
+
+            </section>
+
+
+            <!-- FOOTER -->
+
+            <footer class="app-footer">
+                <p>© 2026 PrepNexa. Learn. Practice. Succeed.</p>
+            </footer>
+
+        </main>
 
     </div>
 
 
-    <div class="flashcard-actions">
-
-        <button
-            onclick="previousFlashcard()"
-        >
-            Previous
-        </button>
-
-        <button
-            class="btn-danger"
-            onclick="markFlashcardRevision()"
-        >
-            I Don't Know
-        </button>
-
-        <button
-            class="btn-success"
-            onclick="markFlashcardKnown()"
-        >
-            I Know
-        </button>
-
-        <button
-            onclick="nextFlashcard()"
-        >
-            Next
-        </button>
-
-    </div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     REVISION
-===================================================== -->
-
-<section
-    id="revision"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        🔁 Revision Queue
-    </div>
-
-    <div id="revisionQueueList"></div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     MISTAKES
-===================================================== -->
-
-<section
-    id="mistakes"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        📕 My Mistake Notebook
-    </div>
-
-    <div id="mistakeList"></div>
-
-    <button
-        class="btn-danger"
-        onclick="clearMistakes()"
-    >
-        Clear Notebook
-    </button>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     PROGRESS
-===================================================== -->
-
-<section
-    id="progress"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        📈 Progress
-    </div>
-
-    <canvas id="progressChart"></canvas>
-
-</div>
-
-<div class="card">
-
-    <div class="card-title">
-        Attempt History
-    </div>
-
-    <div id="historyList"></div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     DIAGNOSIS
-===================================================== -->
-
-<section
-    id="diagnosis"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        🔍 Coding Mistake Diagnosis
-    </div>
-
-    <input
-        type="text"
-        id="mistakeInput"
-        placeholder="Example: index error"
-    >
-
-    <button
-        class="btn-primary"
-        onclick="diagnoseMistake()"
-    >
-        Diagnose
-    </button>
-
-    <div class="result-box">
-
-        <h3 id="diagnosisResult"></h3>
-
-        <p id="suggestion"></p>
-
-    </div>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     PREFERENCES
-===================================================== -->
-
-<section
-    id="preferences"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        🎨 Appearance
-    </div>
-
-    <br>
-
-    <button onclick="setModePreference('light')">
-        ☀ Light
-    </button>
-
-    <button onclick="setModePreference('dark')">
-        🌙 Dark
-    </button>
-
-    <button onclick="setModePreference('system')">
-        💻 System
-    </button>
-
-    <hr>
-
-    <br>
-
-    <button onclick="setThemePreference('indigo')">
-        Indigo
-    </button>
-
-    <button onclick="setThemePreference('blue')">
-        Blue
-    </button>
-
-    <button onclick="setThemePreference('teal')">
-        Teal
-    </button>
-
-    <button onclick="setThemePreference('rose')">
-        Rose
-    </button>
-
-</div>
-
-</section>
-
-
-<!-- =====================================================
-     PROFILE SETTINGS
-===================================================== -->
-
-<section
-    id="profileSettings"
-    class="page"
->
-
-<div class="card">
-
-    <div class="card-title">
-        👤 Profile Settings
-    </div>
-
-    <div
-        id="profilePhotoPreview"
-        class="profile-photo-preview"
-    >
-        U
-    </div>
-
-
-    <input
-        type="file"
-        id="profilePhotoInput"
-        accept="image/*"
-        onchange="handleProfilePhoto(event)"
-    >
-
-
-    <button
-        class="btn-danger"
-        onclick="removeProfilePhoto()"
-    >
-        Remove Photo
-    </button>
-
-</div>
-
-</section>
-
-<section class="ai-coach-section">
-    <h2>PrepNexa AI Coach</h2>
-
-    <div class="ai-quick-actions">
-    <button type="button" onclick="useAiPrompt('studyPlan')">
-        Generate Study Plan
-    </button>
-
-    <button type="button" onclick="useAiPrompt('weakness')">
-        Analyze My Weakness
-    </button>
-
-    <button type="button" onclick="useAiPrompt('interview')">
-        Interview Questions
-    </button>
-</div>
-
-    <textarea
-        id="aiPrompt"
-        placeholder="Ask PrepNexa AI anything about DSA, Aptitude, DBMS, OS, CN, interviews..."
-        rows="5"
-    ></textarea>
-
-    <button id="askAiBtn">Ask AI</button>
-
-    <div id="aiResponse" class="ai-response">
-        Your AI response will appear here.
-    </div>
-
-</section>
-
-</div>
-
-
-</main>
-
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="script.js"></script>
-
-<!-- Floating Chatbot Widget -->
-<div id="chatWidget" class="chat-widget">
-  <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleChatWidget()">
-    💬 <span id="chatBadge" class="chat-badge">AI</span>
-  </button>
-  
-  <div id="chatBox" class="chat-box" style="display: none;">
-    <div class="chat-header">
-      <div class="chat-header-info">
-        <span class="chat-avatar">🤖</span>
-        <div>
-          <h4>PrepNexa AI Coach</h4>
-          <p class="chat-status"><span class="status-dot"></span> Online</p>
-        </div>
-      </div>
-      <button class="chat-close-btn" onclick="toggleChatWidget()">✕</button>
-    </div>
-    
-    <div id="chatMessages" class="chat-messages">
-      <div class="message bot-message">
-        👋 Hi! I'm your PrepNexa AI Coach. Ask me anything about DSA, OS, DBMS, Networks, or placement interviews!
-      </div>
-    </div>
-    
-    <div class="chat-input-container">
-      <input type="text" id="widgetPrompt" placeholder="Type your question..." onkeypress="handleChatKeyPress(event)">
-      <button id="sendWidgetBtn" onclick="sendWidgetMessage()">Send</button>
-    </div>
-  </div>
-</div>
+    <!-- ===================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ===================================== -->
+
+    <script src="script.js"></script>
 
 </body>
+
 </html>

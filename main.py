@@ -1,52 +1,124 @@
+
 import os
-import time
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from google import genai
-from google.genai import types
 
 
-app = FastAPI(title="PrepNexa API")
+# ==========================================
+# 1. APP CONFIGURATION
+# ==========================================
 
-
-# -----------------------------
-# CORS
-# -----------------------------
+app = FastAPI(
+    title="PrepNexa API",
+    description="Placement Readiness and AI Coaching API",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# -----------------------------
-# Gemini setup
-# -----------------------------
+# ==========================================
+# 2. GEMINI CONFIGURATION
+# ==========================================
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-client = None
+GEMINI_MODEL = os.getenv(
+    "GEMINI_MODEL",
+    "gemini-3.5-flash-lite"
+)
+
+gemini_client = None
 
 if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    gemini_client = genai.Client(
+        api_key=GEMINI_API_KEY
+    )
 
 
-# -----------------------------
-# Rule-based diagnosis
-# -----------------------------
+# ==========================================
+# 3. AI COACH INSTRUCTIONS
+# ==========================================
 
-def diagnose_mistake(description):
+AI_INSTRUCTIONS = """
+You are PrepNexa AI Coach, a friendly and knowledgeable
+placement preparation assistant.
+
+Your purpose is to help students prepare for internships,
+technical interviews and campus placements.
+
+You can help with:
+
+1. Data Structures and Algorithms
+2. Java and Python programming
+3. OOPs
+4. DBMS and SQL
+5. Operating Systems
+6. Computer Networks
+7. Aptitude and Logical Reasoning
+8. Verbal Ability
+9. HR and Technical Interviews
+10. Resume and Placement Preparation
+
+Teaching rules:
+
+- Explain concepts in simple language.
+- Understand the student's question before answering.
+- Use Hinglish when the student uses Hinglish.
+- Use examples wherever useful.
+- Explain coding questions step by step.
+- Include dry runs for DSA questions when helpful.
+- Explain time and space complexity for algorithms.
+- Compare brute force and optimized approaches.
+- Keep answers structured and easy to understand.
+- Never invent facts or pretend code was executed.
+- If a question is unclear, ask for clarification.
+
+Be supportive, patient and beginner-friendly.
+"""
+
+
+# ==========================================
+# 4. REQUEST MODELS
+# ==========================================
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class AIRequest(BaseModel):
+    message: Optional[str] = None
+    prompt: Optional[str] = None
+    question: Optional[str] = None
+
+    history: list[ChatMessage] = Field(
+        default_factory=list
+    )
+
+
+# ==========================================
+# 5. MISTAKE DIAGNOSIS
+# ==========================================
+
+def diagnose_mistake(description: str):
+
     description = description.lower()
 
     if "duplicate" in description:
         return "Duplicate Handling Error"
 
-    elif "index" in description:
+    elif "index" in description or "out of range" in description:
         return "Boundary Error"
 
     elif "base case" in description or "recursion" in description:
@@ -58,55 +130,80 @@ def diagnose_mistake(description):
     elif "null" in description or "none" in description:
         return "Null Handling Error"
 
+    elif "infinite" in description:
+        return "Infinite Loop Error"
+
+    elif "overflow" in description:
+        return "Overflow Error"
+
     else:
         return "General Logic Error"
 
 
-def give_suggestion(diagnosis):
+def give_suggestion(diagnosis: str):
 
-    if diagnosis == "Duplicate Handling Error":
-        return "Use a set or frequency count to handle duplicates."
+    suggestions = {
+        "Duplicate Handling Error":
+            "Use a set or frequency counter to handle duplicate values.",
 
-    elif diagnosis == "Boundary Error":
-        return "Check loop limits and array indexes carefully."
+        "Boundary Error":
+            "Check array indexes, loop limits and boundary conditions.",
 
-    elif diagnosis == "Recursion Error":
-        return "Check your base case and recursive call."
+        "Recursion Error":
+            "Check your base case and recursive function calls.",
 
-    elif diagnosis == "Loop Logic Error":
-        return "Check loop condition and increment/decrement logic."
+        "Loop Logic Error":
+            "Check your loop condition and increment or decrement logic.",
 
-    elif diagnosis == "Null Handling Error":
-        return "Check whether the value exists before accessing it."
+        "Null Handling Error":
+            "Check whether a variable contains a valid value before accessing it.",
 
-    else:
-        return "Dry run your code step by step and inspect variable values."
+        "Infinite Loop Error":
+            "Make sure your loop condition eventually becomes false.",
+
+        "Overflow Error":
+            "Check the data type and maximum value supported by the variable.",
+
+        "General Logic Error":
+            "Dry run your code step by step and inspect variable values."
+    }
+
+    return suggestions.get(
+        diagnosis,
+        suggestions["General Logic Error"]
+    )
 
 
-# -----------------------------
-# Request model
-# -----------------------------
-
-class AIRequest(BaseModel):
-    prompt: str
-
-
-# -----------------------------
-# Home
-# -----------------------------
+# ==========================================
+# 6. HOME ROUTE
+# ==========================================
 
 @app.get("/")
 def home():
 
     return {
         "message": "PrepNexa API is working!",
-        "ai_enabled": bool(GEMINI_API_KEY)
+        "status": "online"
     }
 
 
-# -----------------------------
-# Diagnosis
-# -----------------------------
+# ==========================================
+# 7. HEALTH CHECK
+# ==========================================
+
+@app.get("/health")
+def health_check():
+
+    return {
+        "status": "healthy",
+        "gemini_configured": gemini_client is not None,
+        "model": GEMINI_MODEL
+    }
+
+
+# ==========================================
+# 8. MISTAKE DIAGNOSIS API
+# ==========================================
 
 @app.get("/diagnose")
 def diagnose(description: str):
@@ -122,93 +219,129 @@ def diagnose(description: str):
     }
 
 
-# -----------------------------
-# Gemini AI
-# -----------------------------
+# ==========================================
+# 9. PREPNEXA AI COACH API
+# ==========================================
 
 @app.post("/ai")
-def ai_response(request: AIRequest):
+def ai_coach(request: AIRequest):
 
-    if not client:
-        raise HTTPException(
-            status_code=500,
-            detail="Gemini API key is not configured."
-        )
+    # Accept different frontend request field names
+    user_message = (
+        request.message
+        or request.prompt
+        or request.question
+        or ""
+    ).strip()
 
-    prompt = request.prompt.strip()
-
-    if not prompt:
+    if not user_message:
         raise HTTPException(
             status_code=400,
-            detail="Prompt cannot be empty."
+            detail="Please enter a question."
         )
+
+    if len(user_message) > 8000:
+        raise HTTPException(
+            status_code=400,
+            detail="Your question is too long. Please shorten it."
+        )
+
+    if gemini_client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API key is not configured on the server."
+        )
+
+    # Build conversation context
+    conversation = AI_INSTRUCTIONS + "\n\n"
+
+    for item in request.history[-8:]:
+
+        if item.role.lower() not in ["user", "assistant", "model"]:
+            continue
+
+        conversation += (
+            f"{item.role.upper()}: "
+            f"{item.content[:4000]}\n"
+        )
+
+    conversation += (
+        f"\nSTUDENT QUESTION: {user_message}\n"
+        "\nGive a clear and helpful answer."
+    )
 
     try:
 
-        response = None
-
-        for attempt in range(3):
-
-            try:
-
-                response = client.models.generate_content(
-                    model="gemini-3.5-flash-lite",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=(
-                              "You are PrepNexa AI. Help engineering students with DSA, CS subjects, aptitude and interviews. "
-    "Answer briefly and clearly in simple Hinglish when useful."
-                        ),
-                        max_output_tokens=250,
-                        temperature=0.2
-                    )
-                )
-
-                break
-
-            except Exception as e:
-
-                error_text = str(e)
-
-                print(
-                    f"Gemini attempt {attempt + 1} failed:",
-                    error_text
-                )
-
-                if (
-                    "503" in error_text
-                    or "UNAVAILABLE" in error_text
-                ) and attempt < 2:
-
-                    wait_time = 2 ** attempt
-
-                    print(
-                        f"Gemini busy. Retrying in {wait_time} seconds..."
-                    )
-
-                    time.sleep(wait_time)
-
-                    continue
-
-                raise
-
-        if response is None:
-            raise Exception("Gemini did not return a response.")
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=conversation
+        )
 
         answer = response.text
 
         if not answer:
-            answer = "I could not generate an answer. Please try again."
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned an empty response. Please try again."
+            )
 
         return {
-            "response": answer
+            "answer": answer,
+            "response": answer,
+            "reply": answer,
+            "model": GEMINI_MODEL
         }
 
-    except Exception as e:
+    except HTTPException:
+        raise
 
-        print("Gemini error:", str(e))
+    except Exception as error:
+
+        error_message = str(error).lower()
+
+        print("Gemini API Error:", str(error))
+
+        # Free-tier quota exceeded
+        if (
+            "429" in error_message
+            or "resource_exhausted" in error_message
+            or "quota" in error_message
+        ):
+
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini API free-tier quota has been reached. "
+                    "Please wait until your quota resets and try again."
+                )
+            )
+
+        # Temporary model/server issue
+        if (
+            "503" in error_message
+            or "unavailable" in error_message
+        ):
+
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Gemini is temporarily busy. "
+                    "Please try again after some time."
+                )
+            )
 
         raise HTTPException(
-            status_code=500,
-            detail="Gemini AI request failed."
+            status_code=502,
+            detail="AI request failed. Please try again later."
         )
+
+
+# ==========================================
+# 10. RUN LOCALLY
+# ==========================================
+
+# Local command:
+# python3 -m uvicorn main:app --reload --port 8001
+
+# Render start command:
+# uvicorn main:app --host 0.0.0.0 --port $PORT
